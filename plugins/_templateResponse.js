@@ -1,9 +1,13 @@
-import { proto, generateWAMessage, areJidsSameUser } from 'baileys';
+import { proto, generateWAMessage, areJidsSameUser } from 'ourin-baileys';
 
 export async function all(m, chatUpdate) {
 	if (m.isBaileys) return;
 	if (!m.message) return;
-	if (!(m.message.buttonsResponseMessage || m.message.templateButtonReplyMessage || m.message.listResponseMessage || m.message.interactiveResponseMessage || m.message.pollUpdateMessage)) return;
+	// interactiveResponseMessage (native flow buttons/list ourin-baileys) SUDAH
+	// diurai menjadi m.text oleh parser nativeFlowResponseMessage di lib/simple.js.
+	// Me-re-emit di sini bikin command yang di-tap jalan 2x (pesan ganda).
+	if (m.message.interactiveResponseMessage) return;
+	if (!(m.message.buttonsResponseMessage || m.message.templateButtonReplyMessage || m.message.listResponseMessage || m.message.pollUpdateMessage)) return;
 
 	let id =
 		m.mtype === 'conversation'

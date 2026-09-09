@@ -1,4 +1,4 @@
-import { useMultiFileAuthState, makeCacheableSignalKeyStore } from 'baileys';
+import { useMultiFileAuthState, makeCacheableSignalKeyStore } from 'ourin-baileys';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';

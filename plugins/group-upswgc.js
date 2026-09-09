@@ -1,4 +1,4 @@
-import * as baileys from "baileys";
+import * as baileys from "ourin-baileys";
 import crypto from "node:crypto";
 
 async function groupStatus(conn, jid, content) {

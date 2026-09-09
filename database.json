@@ -29,7 +29,7 @@
     },
     "6285183221210@s.whatsapp.net": {
       "name": "arasya",
-      "exp": 10151,
+      "exp": 10267,
       "money": 51960,
       "hutang": 0,
       "hutangTime": 0,
@@ -173834,8 +173834,8 @@
     },
     "6288214772441@s.whatsapp.net": {
       "name": "arasya",
-      "exp": 9255,
-      "money": 997304780,
+      "exp": 9601,
+      "money": 997305060,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
@@ -173856,7 +173856,9 @@
       "bait": "None",
       "bait_count": 0,
       "location": "Empang",
-      "total_tangkapan": 0
+      "total_tangkapan": 0,
+      "loggedIn": true,
+      "loginTime": 1788840132567
     },
     "6281299559662@s.whatsapp.net": {
       "name": "zaa",
@@ -177112,6 +177114,32 @@
       "name": "𝙈𝙄𝙎𝙃𝘼𝙉𝘼 𝙑𝙀𝙍𝙉𝙊𝙀",
       "exp": 64,
       "money": 20,
+      "hutang": 0,
+      "hutangTime": 0,
+      "lastpinjam": 0,
+      "level": 1,
+      "limit": 20,
+      "age": -1,
+      "regTime": -1,
+      "afk": -1,
+      "afkReason": "",
+      "warn": 0,
+      "role": "Newbie ㋡",
+      "premium": false,
+      "premiumTime": 0,
+      "registered": false,
+      "banned": false,
+      "autolevelup": false,
+      "rod": 100,
+      "bait": "None",
+      "bait_count": 0,
+      "location": "Empang",
+      "total_tangkapan": 0
+    },
+    "6285823905586@s.whatsapp.net": {
+      "name": "aku",
+      "exp": 38,
+      "money": 0,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
@@ -201563,14 +201591,46 @@
       "kotaSholat": "",
       "namaKota": "",
       "lastNotif": ""
+    },
+    "6285823905586@s.whatsapp.net": {
+      "sWelcome": "",
+      "sBye": "",
+      "sPromote": "",
+      "sDemote": "",
+      "isBanned": false,
+      "welcome": false,
+      "detect": false,
+      "delete": false,
+      "viewOnce": false,
+      "autodl": true,
+      "notifsholat": false,
+      "kotaSholat": "",
+      "namaKota": "",
+      "lastNotif": ""
+    },
+    "6285574671704@s.whatsapp.net": {
+      "sWelcome": "",
+      "sBye": "",
+      "sPromote": "",
+      "sDemote": "",
+      "isBanned": false,
+      "welcome": false,
+      "detect": false,
+      "delete": false,
+      "viewOnce": false,
+      "autodl": true,
+      "notifsholat": false,
+      "kotaSholat": "",
+      "namaKota": "",
+      "lastNotif": ""
     }
   },
   "stats": {
     "main-menu.js": {
-      "total": 3377,
-      "success": 3377,
-      "last": 1780455302156,
-      "lastSuccess": 1780455302156
+      "total": 3388,
+      "success": 3388,
+      "last": 1788840171933,
+      "lastSuccess": 1788840171933
     },
     "xp-profile.js": {
       "total": 155,
@@ -201591,9 +201651,9 @@
       "lastSuccess": 1780435660543
     },
     "xp-register.js": {
-      "total": 627,
+      "total": 628,
       "success": 451,
-      "last": 1780435252514,
+      "last": 1788839904013,
       "lastSuccess": 1780435252514
     },
     "tools-toimg.js": {
@@ -202897,6 +202957,18 @@
       "success": 33,
       "last": 1780119326758,
       "lastSuccess": 1780119326758
+    },
+    "buttons-demo.js": {
+      "total": 2,
+      "success": 2,
+      "last": 1788839518935,
+      "lastSuccess": 1788839518935
+    },
+    "xp-login.js": {
+      "total": 2,
+      "success": 2,
+      "last": 1788840133322,
+      "lastSuccess": 1788840133322
     }
   },
   "msgs": {},
@@ -202965,6 +203037,12 @@
       "antiviewonceAll": false
     },
     "62882021291227@s.whatsapp.net": {
+      "public": true,
+      "autoread": true,
+      "anticall": true,
+      "antiviewonceAll": false
+    },
+    "6285823905586@s.whatsapp.net": {
       "public": true,
       "autoread": true,
       "anticall": true,

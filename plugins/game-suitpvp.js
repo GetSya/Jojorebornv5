@@ -2,6 +2,30 @@ let timeout = 60000;
 let poin = 500;
 let poin_lose = -100;
 
+// Tombol native + fallback teks. Tap kembali sebagai m.text berisi id
+// ('terima'/'tolak') sehingga diproses before-hook yang sudah ada.
+async function sendSuitButtons(conn, jid, text, buttons, opts = {}) {
+  try {
+    if (buttons && buttons.length > 0) {
+      await conn.sendButtons(jid, text, buttons, {
+        footer: opts.footer || '✊ Suit PvP',
+        ...(opts.quoted ? { quoted: opts.quoted } : {})
+      })
+      return true
+    }
+    throw new Error('no-buttons')
+  } catch (e) {
+    try {
+      await conn.sendMessage(jid,
+        { text, ...(opts.mentions ? { mentions: opts.mentions } : {}) },
+        opts.quoted ? { quoted: opts.quoted } : {})
+      return true
+    } catch (e2) {
+      return false
+    }
+  }
+}
+
 let handler = async (m, { conn, args, usedPrefix, command }) => {
   let who;
   if (m.isGroup) {
@@ -49,15 +73,15 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
 @${m.sender.split('@')[0]} menantang @${who.split('@')[0]} untuk bermain suit.
 
-Silahkan @${who.split('@')[0]}.`;
-
-  let footer = `Ketik "terima/ok/gas" untuk memulai suit\nKetik "tolak/gabisa/nanti" untuk menolak.`;
+Silahkan @${who.split('@')[0]}, ketuk tombol di bawah ⬇️
+(atau ketik "terima" / "tolak")`;
 
   conn.suit[id] = {
-    chat: await conn.sendMessage(m.chat, {
-      text: caption + '\n\n' + footer,
-      mentions: [m.sender, who]
-    }, { quoted: m }),
+    chat: await sendSuitButtons(conn, m.chat, caption,
+      [
+        { title: '✅ Terima', id: 'terima' },
+        { title: '❌ Tolak', id: 'tolak' },
+      ], { quoted: m, mentions: [m.sender, who] }),
     id,
     p: m.sender,
     p2: who,

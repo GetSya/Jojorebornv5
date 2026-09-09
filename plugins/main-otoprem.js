@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { delay } from 'baileys';
+import { delay } from 'ourin-baileys';
 
 let handler = async (m, { conn, text, command, usedPrefix }) => {
     let nomor = m.sender.split('@')[0].split(':')[0]

@@ -43,7 +43,7 @@
     "adm-zip": "^0.5.16",
     "awesome-phonenumber": "^5.10.0",
     "axios": "^1.13.2",
-    "baileys": "latest",
+    "ourin-baileys": "^9.0.21",
     "bing-translate-api": "^4.0.2",
     "canvafy": "^7.2.1",
     "canvas": "^3.2.3",

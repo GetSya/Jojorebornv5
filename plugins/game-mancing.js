@@ -271,6 +271,42 @@ function initUser(user) {
 }
 
 // ═══════════════════════════════════════════════════
+//              BUTTON HELPERS (native + fallback)
+//  Tap tombol/list kembali sebagai m.text berisi id
+//  (mis. ".buyumpan cacing"), sehingga diproses alur
+//  command yang sudah ada tanpa ubah logika.
+// ═══════════════════════════════════════════════════
+
+function toSections10(rows, title = '☰ Pilih') {
+  const sections = []
+  for (let i = 0; i < rows.length; i += 10)
+    sections.push({ title: i === 0 ? title : `${title} ${i / 10 + 1}`, rows: rows.slice(i, i + 10) })
+  return sections
+}
+
+async function sendFishButtons(conn, jid, text, buttons, opts = {}) {
+  try {
+    if (buttons && buttons.length > 0) {
+      await conn.sendButtons(jid, text, buttons, {
+        footer: opts.footer || '🎣 Fishing Game',
+        ...(opts.quoted ? { quoted: opts.quoted } : {})
+      })
+      return true
+    }
+    throw new Error('no-buttons')
+  } catch (e) {
+    try {
+      await conn.sendMessage(jid,
+        { text, ...(opts.mentions ? { mentions: opts.mentions } : {}) },
+        opts.quoted ? { quoted: opts.quoted } : {})
+      return true
+    } catch (e2) {
+      return false
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
 //                   MAIN HANDLER
 // ═══════════════════════════════════════════════════
 
@@ -294,12 +330,10 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
     }
 
     if (!user.bait || user.bait === 'None' || user.bait_count <= 0) {
-      return m.reply(
-        `🪣 *Kamu tidak punya umpan!*\n\n` +
-        `Beli umpan dulu dengan:\n` +
-        `➤ \`${usedPrefix}buyumpan\` — Lihat daftar umpan\n` +
-        `➤ \`${usedPrefix}buyumpan cacing\` — Beli umpan cacing`
-      )
+      await sendFishButtons(conn, m.chat,
+        `🪣 *Kamu tidak punya umpan!*\n\nBeli umpan dulu, ketuk tombol di bawah ⬇️`,
+        [{ title: '🪱 Lihat Umpan', id: `${usedPrefix}buyumpan` }], { quoted: m })
+      return
     }
 
     if (user.rod <= 0) {
@@ -422,6 +456,15 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
       rodWarning
     )
 
+    // Tombol aksi lanjutan (pesan hasil di atas tidak bisa ditempeli tombol karena via edit)
+    await sendFishButtons(conn, m.chat,
+      `🎣 *Mau apa lagi?*`,
+      [
+        { title: '🎣 Mancing Lagi', id: `${usedPrefix}mancing` },
+        { title: '🏪 Jual ke Bot', id: `${usedPrefix}jualikan bot` },
+        { title: '🎒 Inventory', id: `${usedPrefix}inventory` },
+      ], { quoted: m })
+
     global.db.data.users[sender] = user
     return
   }
@@ -440,14 +483,17 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
 
     const totalVal = user.inventory.reduce((s, i) => s + (i.lastPrice || 0) * i.count, 0)
 
-    return m.reply(
+    return sendFishButtons(conn, m.chat,
       `🎒 *INVENTARIS - ${(user.name || m.sender.split('@')[0]).toUpperCase()}*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `${list}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `💎 *Total Estimasi: Rp ${formatMoney(totalVal)}*\n` +
-      `📦 Total Jenis: ${user.inventory.length} jenis ikan`
-    )
+      `📦 Total Jenis: ${user.inventory.length} jenis ikan`,
+      [
+        { title: '🏪 Jual ke Bot', id: `${usedPrefix}jualikan bot` },
+        { title: '🎣 Mancing', id: `${usedPrefix}mancing` },
+      ], { quoted: m })
   }
 
   // ───────────────────────────────────────────────
@@ -457,19 +503,20 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
     const baitKey = text?.toLowerCase().trim().replace(/\s+/g, '_')
 
     if (!baitKey) {
-      // Tampilkan daftar umpan
-      const list = Object.entries(BAITS).map(([key, b], i) =>
-        `${i + 1}. ${b.name}\n   💰 Rp ${formatMoney(b.price)} /biji | Bonus: x${b.bonus}\n   📝 ${b.desc}`
-      ).join('\n\n')
+      // Tampilkan toko umpan sebagai LIST (ketuk = beli 1 biji)
+      const rows = Object.entries(BAITS).map(([key, b]) => ({
+        title: b.name,
+        description: `Rp ${formatMoney(b.price)} | Bonus x${b.bonus}`,
+        id: `${usedPrefix}buyumpan ${key}`
+      }))
 
-      return m.reply(
+      return sendFishButtons(conn, m.chat,
         `🪱 *TOKO UMPAN PANCING*\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `${list}\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `💡 Cara beli: \`${usedPrefix}buyumpan <nama> <jumlah>\`\n` +
-        `📝 Contoh: \`${usedPrefix}buyumpan cacing 10\``
-      )
+        `💰 Uangmu: Rp ${formatMoney(user.money)}\n` +
+        `Ketuk umpan untuk beli 1 biji ⬇️`,
+        [{ type: 'list', title: '🪱 Pilih Umpan', sections: toSections10(rows, '🪱 Daftar Umpan') }],
+        { quoted: m })
     }
 
     // Cek apakah ada argumen jumlah
@@ -518,15 +565,17 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
     user.bait_count = (user.bait_count || 0) + qty
     global.db.data.users[sender] = user
 
-    return m.reply(
+    return sendFishButtons(conn, m.chat,
       `✅ *BERHASIL BELI UMPAN!*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `${matchedBait.name} x${qty}\n` +
       `💰 Total Bayar: Rp ${formatMoney(totalCost)}\n` +
       `💳 Sisa Uang: Rp ${formatMoney(user.money)}\n` +
-      `🪱 Stok Umpan: *${user.bait_count}x*\n\n` +
-      `🎣 Sekarang mulai mancing: \`${usedPrefix}mancing\``
-    )
+      `🪱 Stok Umpan: *${user.bait_count}x*`,
+      [
+        { title: '🎣 Mancing', id: `${usedPrefix}mancing` },
+        { title: '🪱 Beli Lagi', id: `${usedPrefix}buyumpan` },
+      ], { quoted: m })
   }
 
   // ───────────────────────────────────────────────
@@ -552,21 +601,20 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
 
     if (!target) {
       const currentLvl = user.level || 0
-      const list = Object.entries(LOCATIONS).map(([name, loc]) => {
-        const unlocked = currentLvl >= loc.minLevel
-        const icon = unlocked ? '✅' : '🔒'
-        return `${icon} *${name}* ${loc.emoji}\n   📊 Level: ${loc.minLevel}–${loc.maxLevel}\n   📝 ${loc.desc}`
-      }).join('\n\n')
+      const rows = Object.entries(LOCATIONS).map(([name, loc]) => ({
+        title: `${currentLvl >= loc.minLevel ? '✅' : '🔒'} ${name} ${loc.emoji}`,
+        description: `Level ${loc.minLevel}–${loc.maxLevel} | ${loc.desc}`,
+        id: `${usedPrefix}pindah ${name}`
+      }))
 
-      return m.reply(
+      return sendFishButtons(conn, m.chat,
         `🗺️ *DAFTAR LOKASI MEMANCING*\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
         `📍 Lokasi sekarang: *${getUserLocation(user)}*\n` +
-        `📈 Level kamu: *${currentLvl}*\n\n` +
-        `${list}\n\n` +
-        `💡 Cara pindah: \`${usedPrefix}pindah <nama lokasi>\`\n` +
-        `📝 Contoh: \`${usedPrefix}pindah Laut\``
-      )
+        `📈 Level kamu: *${currentLvl}*\n` +
+        `Ketuk lokasi untuk pindah ⬇️`,
+        [{ type: 'list', title: '🗺️ Pilih Lokasi', sections: toSections10(rows, '🗺️ Lokasi') }],
+        { quoted: m })
     }
 
     // Cari lokasi
@@ -595,15 +643,15 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
     user.location = locKey
     global.db.data.users[sender] = user
 
-    return m.reply(
+    return sendFishButtons(conn, m.chat,
       `🗺️ *PINDAH LOKASI BERHASIL!*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📍 Lokasi Baru: *${locKey}* ${locData.emoji}\n` +
       `📝 ${locData.desc}\n\n` +
       `🐟 Ikan tersedia:\n` +
-      locData.fishes.map(f => `  ${RARITY_COLORS[f.rarity]} ${f.name} — Rp ${formatMoney(f.basePrice)}`).join('\n') +
-      `\n\n🎣 Mulai mancing: \`${usedPrefix}mancing\``
-    )
+      locData.fishes.map(f => `  ${RARITY_COLORS[f.rarity]} ${f.name} — Rp ${formatMoney(f.basePrice)}`).join('\n'),
+      [{ title: '🎣 Mancing', id: `${usedPrefix}mancing` }],
+      { quoted: m })
   }
 
   // ───────────────────────────────────────────────
@@ -639,15 +687,18 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
       user.inventory = []
       global.db.data.users[sender] = user
 
-      return m.reply(
+      return sendFishButtons(conn, m.chat,
         `🏪 *JUAL KE BOT BERHASIL!*\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
         salesDetail.join('\n\n') +
         `\n━━━━━━━━━━━━━━━━━━━━\n` +
         `📦 Total Terjual: *${totalItems} ekor*\n` +
         `💵 Total Diterima: *Rp ${formatMoney(totalEarned)}*\n` +
-        `💳 Uang Kamu Kini: *Rp ${formatMoney(user.money)}*`
-      )
+        `💳 Uang Kamu Kini: *Rp ${formatMoney(user.money)}*`,
+        [
+          { title: '🎣 Mancing', id: `${usedPrefix}mancing` },
+          { title: '🎒 Inventory', id: `${usedPrefix}inventory` },
+        ], { quoted: m })
     }
 
     // ── Jual ke user lain ──
@@ -703,20 +754,20 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
       `${RARITY_COLORS[i.rarity] || '⬜'} ${i.name} x${i.count} — Rp ${formatMoney((i.lastPrice || 0) * i.count)}`
     ).join('\n')
 
-    return conn.sendMessage(m.chat, {
-      text:
-        `🤝 *PENAWARAN IKAN*\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `👨 Penjual: *@${sender.split('@')[0]}*\n` +
-        `👤 Pembeli: *@${buyerJid.split('@')[0]}*\n\n` +
-        `📦 Daftar Ikan:\n${fishList}\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `💰 Total Harga: *Rp ${formatMoney(totalPrice)}*\n\n` +
-        `✅ *@${buyerJid.split('@')[0]}* ketik \`accept\` untuk beli\n` +
-        `❌ Atau ketik \`cancel\` untuk tolak\n` +
-        `⏰ Kadaluarsa dalam 60 detik`,
-      mentions: [sender, buyerJid]
-    }, { quoted: m })
+    return sendFishButtons(conn, m.chat,
+      `🤝 *PENAWARAN IKAN*\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `👨 Penjual: *@${sender.split('@')[0]}*\n` +
+      `👤 Pembeli: *@${buyerJid.split('@')[0]}*\n\n` +
+      `📦 Daftar Ikan:\n${fishList}\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `💰 Total Harga: *Rp ${formatMoney(totalPrice)}*\n\n` +
+      `✅ *@${buyerJid.split('@')[0]}* ketuk tombol di bawah\n` +
+      `⏰ Kadaluarsa dalam 60 detik`,
+      [
+        { title: '✅ Terima', id: 'accept' },
+        { title: '❌ Tolak', id: 'cancel' },
+      ], { quoted: m, mentions: [sender, buyerJid] })
   }
 
   // ───────────────────────────────────────────────
@@ -724,7 +775,7 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
   // ───────────────────────────────────────────────
   if (/^(rodinfo|pancingan|cekpancing|rod)$/i.test(command)) {
     const rodCond = getRodConditionText(user.rod)
-    return m.reply(
+    return sendFishButtons(conn, m.chat,
       `🎣 *INFO PANCINGAN*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📊 Kondisi: ${rodCond.text}\n` +
@@ -732,9 +783,11 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
       `📉 Pengaruh ke harga ikan: x${calculateRodBonus(user.rod).toFixed(2)}\n\n` +
       `${user.rod < 30 ? '⚠️ *KRITIS!* Pancingan hampir hancur!\nIkan yang didapat sangat buruk.' :
         user.rod < 60 ? '🟠 Kondisi menurun, pertimbangkan repair.' :
-        '✅ Kondisi masih bagus!'}\n\n` +
-      `🔧 Repair pancing: \`${usedPrefix}repairing\``
-    )
+        '✅ Kondisi masih bagus!'}`,
+      [
+        { title: '🔧 Repair', id: `${usedPrefix}repairing` },
+        { title: '🎣 Mancing', id: `${usedPrefix}mancing` },
+      ], { quoted: m })
   }
 
   // ───────────────────────────────────────────────
@@ -758,14 +811,14 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
     user.rod = 100
     global.db.data.users[sender] = user
 
-    return m.reply(
+    return sendFishButtons(conn, m.chat,
       `🔧 *REPAIR BERHASIL!*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `⚙️ ${oldRod}% → *100%*\n` +
       `💰 Biaya: Rp ${formatMoney(repairCost)}\n` +
-      `💳 Sisa Uang: Rp ${formatMoney(user.money)}\n\n` +
-      `🎣 Pancingan siap digunakan!`
-    )
+      `💳 Sisa Uang: Rp ${formatMoney(user.money)}`,
+      [{ title: '🎣 Mancing', id: `${usedPrefix}mancing` }],
+      { quoted: m })
   }
 
   // ───────────────────────────────────────────────
@@ -776,7 +829,7 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
     const invCount = (user.inventory || []).reduce((s, i) => s + i.count, 0)
     const invVal   = (user.inventory || []).reduce((s, i) => s + (i.lastPrice || 0) * i.count, 0)
 
-    return m.reply(
+    return sendFishButtons(conn, m.chat,
       `📊 *STATISTIK MANCING*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `👤 User: *${user.name || sender.split('@')[0]}*\n` +
@@ -787,8 +840,11 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
       `💎 Nilai Kantong: *Rp ${formatMoney(invVal)}*\n\n` +
       `🪱 Umpan: *${user.bait === 'None' ? '❌ Kosong' : `${user.bait_count}x ${user.bait}`}*\n` +
       `🎣 Pancing: ${rodCond.text} (${user.rod}%)\n` +
-      `💰 Uang: *Rp ${formatMoney(user.money || 0)}*`
-    )
+      `💰 Uang: *Rp ${formatMoney(user.money || 0)}*`,
+      [
+        { title: '🎣 Mancing', id: `${usedPrefix}mancing` },
+        { title: '🎒 Inventory', id: `${usedPrefix}inventory` },
+      ], { quoted: m })
   }
 
   // ───────────────────────────────────────────────
@@ -807,14 +863,17 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
       `${RARITY_COLORS[f.rarity]} *${f.name}*\n   ⭐ ${f.rarity.toUpperCase()} | 💰 Rp ${formatMoney(f.basePrice)}`
     ).join('\n\n')
 
-    return m.reply(
+    return sendFishButtons(conn, m.chat,
       `🐟 *DAFTAR IKAN — ${locKey.toUpperCase()}* ${loc.emoji}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📊 Level: ${loc.minLevel}–${loc.maxLevel}\n\n` +
       `${fishList}\n\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `⬜ Common | 🟩 Uncommon | 🟦 Rare\n🟪 Epic | 🟨 Legendary | 🟥 Mythic | 💠 Divine`
-    )
+      `⬜ Common | 🟩 Uncommon | 🟦 Rare\n🟪 Epic | 🟨 Legendary | 🟥 Mythic | 💠 Divine`,
+      [
+        { title: '🎣 Mancing', id: `${usedPrefix}mancing` },
+        { title: '🗺️ Lokasi', id: `${usedPrefix}pindah` },
+      ], { quoted: m })
   }
 }
 

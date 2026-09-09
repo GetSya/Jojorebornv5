@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { delay } from 'baileys';
+import { delay } from 'ourin-baileys';
 
 
 let handler = async (m, { text, command, usedPrefix }) => {

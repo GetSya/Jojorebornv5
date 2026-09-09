@@ -1,4 +1,4 @@
-import { proto, generateWAMessage, areJidsSameUser } from 'baileys';
+import { proto, generateWAMessage, areJidsSameUser } from 'ourin-baileys';
 
 export async function all(m, chatUpdate) {
 	if (m.isBaileys) return;

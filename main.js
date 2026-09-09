@@ -29,7 +29,7 @@ import pino from 'pino';
 import syntaxerror from 'syntax-error';
 import { Low, JSONFile } from 'lowdb';
 
-import { useMultiFileAuthState, Browsers, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } from 'baileys';
+import { useMultiFileAuthState, Browsers, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } from 'ourin-baileys';
 
 protoType();
 serialize();
@@ -97,7 +97,7 @@ if (!conn.authState.creds.registered) {
 	console.log(chalk.bgWhite(chalk.blue('Generating code...')));
 	setTimeout(async () => {
 		try {
-			let code = await conn.requestPairingCode(global.pairingNumber);
+			let code = await conn.requestPairingCode(String(global.pairingNumber), global.pairingCode);
 			code = code?.match(/.{1,4}/g)?.join('-') || code;
 			console.log(chalk.black(chalk.bgGreen(`Your Pairing Code : `)), chalk.black(chalk.white(code)));
 		} catch (e) {
@@ -256,6 +256,10 @@ async function filesInit() {
 		}
 	}
 }
+// Preload canvas SEBELUM plugin lain: di Windows, sharp yang ke-load duluan
+// bikin canvas.node gagal ("The specified procedure could not be found").
+// Urutan canvas-duluan terbukti aman (canvas-then-sharp OK).
+await import('canvas').catch((e) => console.log('canvas preload gagal:', e.message));
 filesInit()
 	.then((_) => console.log(`Successfully Loaded ${Object.keys(global.plugins).length} Plugins`))
 	.catch(console.error);

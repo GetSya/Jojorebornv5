@@ -5,14 +5,29 @@ import path from 'path';
 import fs, { unwatchFile, watchFile } from 'fs'; 
 import chalk from 'chalk';
 import fetch from 'node-fetch'
-import { Canvas, loadImage } from 'skia-canvas'; // Cukup Canvas dan loadImage
+
+// skia-canvas dimuat lazy (native binding sering hilang/rusak).
+// Kalau gagal load, welcome/bye otomatis fallback ke pesan teks.
+let _skia = null;
+let _skiaLoaded = false;
+async function getSkia() {
+	if (_skiaLoaded) return _skia;
+	_skiaLoaded = true;
+	try {
+		_skia = await import('skia-canvas');
+	} catch (e) {
+		console.error('⚠️ skia-canvas tidak tersedia, welcome/bye pakai teks:', e.message);
+		_skia = null;
+	}
+	return _skia;
+}
 
 
 const isNumber = (x) => typeof x === 'number' && !isNaN(x);
 if (!global.anonymous) global.anonymous = {}
 /**
  * Handle messages upsert
- * @param {import('baileys').BaileysEventMap<unknown>['messages.upsert']} groupsUpdate
+ * @param {import('ourin-baileys').BaileysEventMap<unknown>['messages.upsert']} groupsUpdate
  */
 export async function handler(chatUpdate) {
 	if (!chatUpdate) return;
@@ -499,7 +514,7 @@ if (!m.isGroup && fs.existsSync(anonPath)) {
 
 /**
  * Handle groups participants update
- * @param {import('baileys').BaileysEventMap<unknown>['group-participants.update']} groupsUpdate
+ * @param {import('ourin-baileys').BaileysEventMap<unknown>['group-participants.update']} groupsUpdate
  */
 /**
  * Handle groups participants update
@@ -556,18 +571,20 @@ export async function participantsUpdate({ id, participants, action, simulate = 
 
         if (isWelcome || isDetect) {
             try {
+                const skia = await getSkia();
+                if (!skia) throw new Error('skia-canvas tidak tersedia');
                 // Inisialisasi Canvas
-                const canvas = new Canvas(1200, 600);
+                const canvas = new skia.Canvas(1200, 600);
                 const ctx = canvas.getContext('2d');
 
                 // 1. Latar Belakang dari file bg.png
                 let background;
                 const bgPath = './media/bg.png';
                 if (fs.existsSync(bgPath)) {
-                    background = await loadImage(bgPath);
+                    background = await skia.loadImage(bgPath);
                 } else {
                     // Fallback jika file tidak ada
-                    background = await loadImage('https://via.placeholder.com/1200x600/1e2b3a/ffffff?text=Background');
+                    background = await skia.loadImage('https://via.placeholder.com/1200x600/1e2b3a/ffffff?text=Background');
                 }
                 ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
 
@@ -590,13 +607,13 @@ export async function participantsUpdate({ id, participants, action, simulate = 
                 try {
                     let ppUrl = await this.profilePictureUrl(user, 'image').catch(_ => null);
                     if (ppUrl) {
-                        pp = await loadImage(ppUrl);
+                        pp = await skia.loadImage(ppUrl);
                     } else {
                         throw new Error('No profile picture');
                     }
                 } catch (e) {
                     // Gambar default jika tidak ada foto profil
-                    pp = await loadImage('https://thumbs.dreamstime.com/b/default-avatar-profile-icon-vector-social-media-user-image-182145777.jpg'); // Ganti dengan URL default yang sesuai
+                    pp = await skia.loadImage('https://thumbs.dreamstime.com/b/default-avatar-profile-icon-vector-social-media-user-image-182145777.jpg'); // Ganti dengan URL default yang sesuai
                 }
 
                 // 5. Ukuran dan posisi foto profil (lingkaran di kiri)
@@ -690,7 +707,7 @@ export async function participantsUpdate({ id, participants, action, simulate = 
 }
 /**
  * Handle groups update
- * @param {import('baileys').BaileysEventMap<unknown>['groups.update']} groupsUpdate
+ * @param {import('ourin-baileys').BaileysEventMap<unknown>['groups.update']} groupsUpdate
  */
 export async function groupsUpdate(groupsUpdate) {
 	for (const groupUpdate of groupsUpdate) {

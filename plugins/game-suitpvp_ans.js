@@ -1,7 +1,32 @@
 let handler = m => m
+
+// Tombol native + fallback teks (pola sama seperti game-suitpvp.js).
+// Tap kembali sebagai m.text berisi id ('batu'/'gunting'/'kertas').
+async function sendSuitButtons(conn, jid, text, buttons, opts = {}) {
+  try {
+    if (buttons && buttons.length > 0) {
+      await conn.sendButtons(jid, text, buttons, {
+        footer: opts.footer || '✊ Suit PvP',
+        ...(opts.quoted ? { quoted: opts.quoted } : {})
+      })
+      return true
+    }
+    throw new Error('no-buttons')
+  } catch (e) {
+    try {
+      await conn.sendMessage(jid,
+        { text, ...(opts.mentions ? { mentions: opts.mentions } : {}) },
+        opts.quoted ? { quoted: opts.quoted } : {})
+      return true
+    } catch (e2) {
+      return false
+    }
+  }
+}
+
 handler.before = async function (m) {
   this.suit = this.suit ? this.suit : {}
-  if (db.data.users[m.sender].suit < 0) db.data.users[m.sender].suit = 0
+  if (global.db.data.users[m.sender].suit < 0) global.db.data.users[m.sender].suit = 0
   let room = Object.values(this.suit).find(room => room.id && room.status && [room.p, room.p2].includes(m.sender))
   
   if (room) {
@@ -47,13 +72,19 @@ handler.before = async function (m) {
       room.asal = m.chat
       clearTimeout(room.waktu)
       
-      conn.reply(m.chat, `Suit telah dikirimkan ke chat\n@${room.p.split`@`[0]} dan \n@${room.p2.split`@`[0]}\n\nSilahkan pilih suit di chat masing-masing.\nklik wa.me/${conn.user.jid.split`@`[0]}`, m, { mentions: [room.p, room.p2] })
+      this.reply(m.chat, `Suit telah dikirimkan ke chat\n@${room.p.split`@`[0]} dan \n@${room.p2.split`@`[0]}\n\nSilahkan pilih suit di chat masing-masing.\nklik wa.me/${this.user.jid.split`@`[0]}`, m, { mentions: [room.p, room.p2] })
 
-      if (room.status == 'play') {
-         await this.reply(room.p, `Silahkan pilih *batu/gunting/kertas*\n\n🏆 Menang: +${room.poin} XP ${room.taruhan > 0 ? `& +Rp${(room.taruhan * 2).toLocaleString('id-ID')}` : ''}\n☠️ Kalah: -${room.poin_lose} XP`, null)
-         delay(1500)
-         await this.reply(room.p2, `Silahkan pilih *batu/gunting/kertas*\n\n🏆 Menang: +${room.poin} XP ${room.taruhan > 0 ? `& +Rp${(room.taruhan * 2).toLocaleString('id-ID')}` : ''}\n☠️ Kalah: -${room.poin_lose} XP`, null)
-      }
+       if (room.status == 'play') {
+          let pickText = `Silahkan pilih suit di bawah ⬇️\n\n🏆 Menang: +${room.poin} XP ${room.taruhan > 0 ? `& +Rp${(room.taruhan * 2).toLocaleString('id-ID')}` : ''}\n☠️ Kalah: -${room.poin_lose} XP`
+          let pickBtns = [
+            { title: '✊ Batu', id: 'batu' },
+            { title: '✌️ Gunting', id: 'gunting' },
+            { title: '✋ Kertas', id: 'kertas' },
+          ]
+          await sendSuitButtons(this, room.p, pickText, pickBtns)
+          delay(1500)
+          await sendSuitButtons(this, room.p2, pickText, pickBtns)
+       }
       
       // TIMEOUT JIKA TIDAK MEMILIH
       room.waktu_milih = setTimeout(() => {
@@ -68,12 +99,12 @@ handler.before = async function (m) {
           win = !room.pilih ? room.p2 : room.p
           this.reply(m.chat, `@${(room.pilih ? room.p2 : room.p).split`@`[0]} tidak memilih suit, game berakhir.`, m, { mentions: [room.pilih ? room.p2 : room.p] })
           
-          db.data.users[win == room.p ? room.p : room.p2].exp += room.poin
-          db.data.users[win == room.p ? room.p2 : room.p].exp -= room.poin_lose
+          global.db.data.users[win == room.p ? room.p : room.p2].exp += room.poin
+          global.db.data.users[win == room.p ? room.p2 : room.p].exp -= room.poin_lose
           
           // Yang milih menang WO (Kalah karena AFK)
           if (room.taruhan > 0) {
-            db.data.users[win].money += (room.taruhan * 2)
+            global.db.data.users[win].money += (room.taruhan * 2)
           }
         }
         delete this.suit[room.id]
@@ -126,18 +157,18 @@ _*Hasil Suit*_${tie ? '\nSERI' : ''}
 
       // DISTRIBUSI HADIAH / PENGEMBALIAN SALDO
       if (!tie) {
-        db.data.users[win == room.p ? room.p : room.p2].exp += room.poin
-        db.data.users[win == room.p ? room.p2 : room.p].exp += room.poin_lose // Ini di kode aslimu += poin_lose (berarti nambah minus, alias berkurang)
+        global.db.data.users[win == room.p ? room.p : room.p2].exp += room.poin
+        global.db.data.users[win == room.p ? room.p2 : room.p].exp += room.poin_lose // Ini di kode aslimu += poin_lose (berarti nambah minus, alias berkurang)
         
         // Pemenang mengambil seluruh total taruhan pool
         if (room.taruhan > 0) {
-          db.data.users[win].money += totalTaruhan
+          global.db.data.users[win].money += totalTaruhan
         }
       } else {
         // Jika SERI, kembalikan uang masing-masing player
         if (room.taruhan > 0) {
-          db.data.users[room.p].money += room.taruhan
-          db.data.users[room.p2].money += room.taruhan
+          global.db.data.users[room.p].money += room.taruhan
+          global.db.data.users[room.p2].money += room.taruhan
         }
       }
       delete this.suit[room.id]

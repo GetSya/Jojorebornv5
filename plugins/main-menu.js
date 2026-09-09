@@ -76,6 +76,69 @@ try {
 
  let uptime = clockString(process.uptime() * 1000)
 
+ // --- DAFTAR KATEGORI (dipakai list menu & menu teks) ---
+ let categories = {}
+ for (let plugin of Object.values(global.plugins || {}).filter(p => !p.disabled)) {
+  let helps = Array.isArray(plugin.help) ? plugin.help : plugin.help ? [plugin.help] : []
+  let tags = Array.isArray(plugin.tags) ? plugin.tags : plugin.tags ? [plugin.tags] : []
+
+  for (let tag of tags) {
+   if (!tag) continue
+   if (!categories[tag]) categories[tag] = []
+   categories[tag].push({
+   helps,
+   limit: !!plugin.limit,
+   premium: !!plugin.premium,
+   prefix: !!plugin.customPrefix
+   })
+  }
+ }
+
+ // --- BARE MENU (.menu saja): kirim LIST MESSAGE native ---
+ // Row yang di-tap kembali sebagai m.text berisi id-nya (mis. ".menu ai"),
+ // sehingga otomatis memicu command menu kategori di bawah.
+ if (!text?.trim()) {
+  let tagList = Object.keys(categories).sort()
+  let rows = [
+   { title: '🌐 Semua Menu', description: `${usedPrefix}menu all`, id: `${usedPrefix}menu all` },
+   ...tagList.map(t => ({ title: `📂 ${formatTag(t)}`, description: `${usedPrefix}menu ${t}`, id: `${usedPrefix}menu ${t}` }))
+  ]
+  // WhatsApp membatasi maksimal 10 row per section
+  let sections = []
+  for (let i = 0; i < rows.length; i += 10) {
+   sections.push({ title: i === 0 ? '🌐 MAIN MENU' : `📂 Menu ${i / 10 + 1}`, rows: rows.slice(i, i + 10) })
+  }
+
+  let _botName = global.botName || global.namebot || botname
+  let _pushname = m.pushName || rawName
+  let _tgl = moment.tz('Asia/Jakarta').format('dddd, DD MMMM YYYY')
+  let _jam = moment.tz('Asia/Jakarta').format('HH:mm:ss') + ' WIB'
+
+  let listBody =
+   `╔═⧎ *${_botName}* ⧎═\n` +
+   `║\n` +
+   `╠═⧎ Hallo *${_pushname}*\n` +
+   `║\n` +
+   `╠═⧎ Aku Adalah *${_botName}* \n` +
+   `║ Silahkan Pilih List Menu\n` +
+   `║ Untuk Melihat Daftar Menu.\n` +
+   `║\n` +
+   `╠═⧎ *Harap Login Terlebih*\n` +
+   `║ *Dahulu Sebelum Memulai Bot* \n` +
+   `║ *JOJO Untuk Mendapatkan* \n` +
+   `║ *Limit Dan Balance!*\n` +
+   `║\n` +
+   `╚═⧎ Thanks For Using ${_botName}\n` +
+   `❋─────────────────❋\n\n` +
+   `「 *${_tgl}* 」\n` +
+   `「 *${_jam}* 」`
+
+  await conn.sendButtons(m.chat, listBody, [
+   { type: 'list', title: '📂 Pilih Menu', sections }
+  ], { footer: '✨ JOJO REBORN • Simple • Fast • Powerful', quoted: m })
+  return
+ }
+
  // --- PROSES GAMBAR CANVAS ---
  const canvas = new Canvas(800, 450)
  const ctx = canvas.getContext('2d')
@@ -144,24 +207,7 @@ try {
  const thumbBuffer = await canvas.toBuffer('png')
  // --- AKHIR PROSES GAMBAR ---
 
- let plugins = Object.values(global.plugins || {}).filter(p => !p.disabled)
- let categories = {}
-
- for (let plugin of plugins) {
- let helps = Array.isArray(plugin.help) ? plugin.help : plugin.help ? [plugin.help] : []
- let tags = Array.isArray(plugin.tags) ? plugin.tags : plugin.tags ? [plugin.tags] : []
-
- for (let tag of tags) {
-  if (!tag) continue
-  if (!categories[tag]) categories[tag] = []
-  categories[tag].push({
-  helps,
-  limit: !!plugin.limit,
-  premium: !!plugin.premium,
-  prefix: !!plugin.customPrefix
-  })
- }
- }
+  // categories sudah dibangun di atas (dipakai juga oleh list menu)
 
  const readMore = String.fromCharCode(8206).repeat(4001)
 

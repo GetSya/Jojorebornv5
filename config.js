@@ -2,7 +2,8 @@ import { watchFile, unwatchFile } from 'fs';
 import chalk from 'chalk';
 import { fileURLToPath } from 'url';
 
-global.pairingNumber = 628987590360;
+global.pairingNumber = 6285183221210;
+global.pairingCode = 'RSYARAFI'; // custom pairing code (8 karakter, tanpa tanda -). Ditampilkan sebagai RSYA-RAFI
 global.owner = [['6288214772441', 'ARASYA', true]];
 global.mods = [];
 

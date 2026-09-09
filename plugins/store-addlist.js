@@ -1,4 +1,4 @@
-import { proto } from "baileys";
+import { proto } from "ourin-baileys";
 
 let handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner }) => {
   global.db.data.msgs = global.db.data.msgs || {}

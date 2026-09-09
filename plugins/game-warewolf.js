@@ -210,6 +210,98 @@ function buildPlayerList(players) {
     ).join('\n')
 }
 
+// =============================================================================
+//  BUTTON HELPERS — native interactive message (ourin-baileys) + fallback teks
+//  Tap tombol/list kembali sebagai m.text berisi id (mis. ".ww vote 3"),
+//  sehingga langsung diproses alur command yang sudah ada tanpa ubah logika.
+// =============================================================================
+
+/** Pecah rows menjadi sections (maks. 10 row per section, batas WhatsApp) */
+function toSections(rows, title = '☰ Daftar Pemain') {
+    let sections = []
+    for (let i = 0; i < rows.length; i += 10)
+        sections.push({ title: i === 0 ? title : `${title} ${i / 10 + 1}`, rows: rows.slice(i, i + 10) })
+    return sections
+}
+
+/**
+ * Rows daftar pemain untuk aksi ber-argumen nomor (kill/terawang/protect/poison/shoot/vote).
+ * Nomor = posisi di room.players (1-based), sama seperti daftar teks. TIDAK menampilkan
+ * role agar tidak bocor ke pemain lain.
+ */
+function nightPlayerRows(room, pfx, action, excludeJids = []) {
+    let rows = []
+    room.players.forEach((p, i) => {
+        if (p.status !== 'ALIVE') return
+        if (excludeJids.includes(p.jid)) return
+        let num = p.jid.split('@')[0].slice(0, 15)
+        rows.push({ title: `${i + 1}. ${num}`, description: 'Ketuk untuk memilih', id: `${pfx} ${action} ${i + 1}` })
+    })
+    return rows
+}
+
+/** Tombol aksi malam sesuai role pemain (untuk PM). Villager = [] (tidur saja). */
+function nightButtonsFor(room, player, pfx) {
+    if (player.role === 'WEREWOLF') {
+        let wwJids = room.players.filter(p => p.role === 'WEREWOLF').map(p => p.jid)
+        let rows = nightPlayerRows(room, pfx, 'kill', [...wwJids, player.jid])
+        return rows.length ? [{ type: 'list', title: '🔪 Pilih Korban', sections: toSections(rows) }] : []
+    }
+    if (player.role === 'SEER') {
+        let rows = nightPlayerRows(room, pfx, 'terawang', [player.jid])
+        return rows.length ? [{ type: 'list', title: '🔮 Terawang Siapa?', sections: toSections(rows) }] : []
+    }
+    if (player.role === 'DOCTOR') {
+        let rows = nightPlayerRows(room, pfx, 'protect', room.nightAction.lastProtect ? [room.nightAction.lastProtect] : [])
+        return rows.length ? [{ type: 'list', title: '💉 Lindungi Siapa?', sections: toSections(rows) }] : []
+    }
+    if (player.role === 'WITCH') {
+        let btns = []
+        if (room.witch.canSave && room.nightAction.kills.length > 0)
+            btns.push({ title: '✨ Save Korban', id: `${pfx} save` })
+        if (room.witch.canPoison) {
+            let prows = nightPlayerRows(room, pfx, 'poison', [player.jid])
+            if (prows.length) btns.push({ type: 'list', title: '☠️ Racuni Siapa?', sections: toSections(prows) })
+        }
+        btns.push({ title: '⏭️ Skip', id: `${pfx} skip` })
+        return btns
+    }
+    return []
+}
+
+/** List vote siang hari (grup): semua pemain hidup, id = ".ww vote <nomor>". */
+function voteListButtons(room, pfx) {
+    let rows = nightPlayerRows(room, pfx, 'vote')
+    return rows.length ? [{ type: 'list', title: '🗳️ Vote Eksekusi', sections: toSections(rows, '🗳️ Pilih Pemain') }] : []
+}
+
+/**
+ * Kirim buttons, fallback otomatis ke teks (+mentions) kalau gagal.
+ * Tidak pernah throw — return true/false seperti safeSend.
+ */
+async function sendWWButtons(conn, jid, text, buttons, opts = {}) {
+    try {
+        if (buttons && buttons.length > 0) {
+            await conn.sendButtons(jid, text, buttons, {
+                footer: opts.footer || '🐺 Ultimate Werewolf',
+                ...(opts.quoted ? { quoted: opts.quoted } : {})
+            })
+            return true
+        }
+        throw new Error('no-buttons')
+    } catch (e) {
+        try {
+            await conn.sendMessage(jid,
+                { text, ...(opts.mentions ? { mentions: opts.mentions } : {}) },
+                opts.quoted ? { quoted: opts.quoted } : {})
+            return true
+        } catch (e2) {
+            console.error('[WW] sendWWButtons fallback gagal:', e2.message)
+            return false
+        }
+    }
+}
+
 // ── Reset nightAction ─────────────────────────────────────────────────────────
 function freshNightAction(prevProtect = null) {
     return { kills: [], seer: null, protect: null, save: false, poison: null, witchDone: false, lastProtect: prevProtect }
@@ -516,13 +608,16 @@ async function resolveVote(room, conn) {
     }
 
     if (room.hunterPending) {
-        execMsg += `🏹 *HUNTER TEWAS!* @${execPlayer.jid.split('@')[0]} boleh menembak!\nHunter, ketik di PM: *.ww shoot <nomor>*`
+        execMsg += `🏹 *HUNTER TEWAS!* @${execPlayer.jid.split('@')[0]} boleh menembak!\nHunter, pilih target di PM ⬇️`
         await safeSendGroup(conn, room.id, { text: execMsg, mentions: room.players.map(p => p.jid) })
         await sleep(1000)
-        await safeSend(conn, room.hunterPending, {
-            text     : `🏹 Kamu dieksekusi! Balas dendam:\n*.ww shoot <nomor>*\n\n*Daftar Pemain:*\n${buildPlayerList(room.players)}`,
-            mentions : room.players.map(p => p.jid)
-        })
+        {
+            let _hpfx = room.pfx || '.ww'
+            let _srows = nightPlayerRows(room, _hpfx, 'shoot', [room.hunterPending])
+            await sendWWButtons(conn, room.hunterPending,
+                `🏹 Kamu dieksekusi! Balas dendam, pilih target:\n\n*Daftar Pemain:*\n${buildPlayerList(room.players)}`,
+                _srows.length ? [{ type: 'list', title: '🏹 Tembak Siapa?', sections: toSections(_srows) }] : [])
+        }
         room.state = 'HUNTER'
         room._prevProtectAfterHunter = room.nightAction.protect
         return
@@ -604,7 +699,8 @@ async function startNight(room, conn) {
 
         msg += `*Daftar Pemain:*\n${playerList}`
 
-        let ok = await safeSend(conn, p.jid, { text: msg, mentions: allJids })
+        // Tombol aksi malam sesuai role (fallback ke teks bila gagal)
+        let ok = await sendWWButtons(conn, p.jid, msg, nightButtonsFor(room, p, room.pfx || '.ww'))
         console.log(`[WW] PM malam ke ${p.jid} → ${ok ? 'BERHASIL' : 'GAGAL'}`)
     }
 
@@ -676,13 +772,16 @@ async function resolveNight(room, conn) {
     if (room.hunterPending) {
         let hunter = room.players.find(p => p.jid === room.hunterPending)
         morningMsg += `🏹 *HUNTER TEWAS!* *@${hunter.jid.split('@')[0]}* boleh menembak 1 pemain!\n`
-        morningMsg += `Hunter, ketik di Private Chat: *.ww shoot <nomor>*`
+        morningMsg += `Hunter, pilih target di Private Chat ⬇️`
         await safeSendGroup(conn, room.id, { text: morningMsg, mentions: room.players.map(p => p.jid) })
         await sleep(1000)
-        await safeSend(conn, room.hunterPending, {
-            text     : `🏹 Kamu mati! Balas dendam dengan menembak:\n*.ww shoot <nomor>*\n\n*Daftar Pemain:*\n${buildPlayerList(room.players)}`,
-            mentions : room.players.map(p => p.jid)
-        })
+        {
+            let _hpfx = room.pfx || '.ww'
+            let _srows = nightPlayerRows(room, _hpfx, 'shoot', [room.hunterPending])
+            await sendWWButtons(conn, room.hunterPending,
+                `🏹 Kamu mati! Balas dendam dengan menembak, pilih target:\n\n*Daftar Pemain:*\n${buildPlayerList(room.players)}`,
+                _srows.length ? [{ type: 'list', title: '🏹 Tembak Siapa?', sections: toSections(_srows) }] : [])
+        }
         room.state       = 'HUNTER'
         room.nightAction = freshNightAction(prevProtect)
         return
@@ -690,10 +789,13 @@ async function resolveNight(room, conn) {
 
     let alivePlayers = room.players.filter(p => p.status === 'ALIVE')
     morningMsg += `👥 *Pemain Hidup (${alivePlayers.length}):*\n`
-    morningMsg += alivePlayers.map((p, i) => `${i+1}. @${p.jid.split('@')[0]}`).join('\n')
-    morningMsg += `\n\nBerdiskusi lalu vote:\n*.ww vote <nomor>*\n⏰ Waktu voting: *${VOTE_TIMEOUT_SEC} detik*`
+    // Nomor = indeks global room.players (1-based) agar cocok dengan *.ww vote <nomor>*
+    room.players.forEach((p, i) => {
+        if (p.status === 'ALIVE') morningMsg += `${i+1}. @${p.jid.split('@')[0]}\n`
+    })
+    morningMsg += `\nBerdiskusi lalu vote via tombol di bawah ⬇️\n⏰ Waktu voting: *${VOTE_TIMEOUT_SEC} detik*`
 
-    await safeSendGroup(conn, room.id, { text: morningMsg, mentions: room.players.map(p => p.jid) })
+    await sendWWButtons(conn, room.id, morningMsg, voteListButtons(room, room.pfx || '.ww'), { mentions: room.players.map(p => p.jid) })
     room.nightAction = freshNightAction(prevProtect)
     room.votes       = {}
     startVoteTimer(room, conn)
@@ -711,37 +813,35 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     let action = (args[0] || '').toLowerCase()
     let pfx    = usedPrefix + command
 
-    // ── HELP ──────────────────────────────────────────────────────────────────
+    // Simpan pfx di room agar timer (resolveNight/resolveVote/startNight)
+    // yang jalan tanpa konteks pesan tetap bisa bikin id tombol yang valid
+    if (room) room.pfx = pfx
+
+    // ── HELP (list menu buttons) ────────────────────────────────────────────
     if (!action || action === 'help') {
-        return conn.sendMessage(m.chat, { text:
+        let helpBody =
 `🐺 *ULTIMATE WEREWOLF GAME* 🐺
-
-*📌 Perintah Grup:*
-> *${pfx} create* – Buat ruang permainan
-> *${pfx} join* – Bergabung ke lobi
-> *${pfx} leave* – Keluar dari lobi (sebelum start)
-> *${pfx} start* – Mulai game (min. 4 pemain)
-> *${pfx} info* – Status & daftar pemain
-> *${pfx} vote <nomor>* – Vote eksekusi (Siang Hari)
-> *${pfx} votes* – Lihat status & tally vote
-> *${pfx} leaderboard* – Ranking Master of Werewolf
-> *${pfx} stop* – Hentikan game (Admin/Host)
-
-*🌙 Perintah Private Chat (Malam Hari):*
-> *${pfx} kill <nomor>* – Bunuh target (Werewolf)
-> *${pfx} terawang <nomor>* – Cek peran (Penerawang)
-> *${pfx} protect <nomor>* – Lindungi pemain (Dokter)
-> *${pfx} save* – Selamatkan korban WW (Penyihir)
-> *${pfx} poison <nomor>* – Racuni pemain (Penyihir)
-> *${pfx} skip* – Lewati aksi (Penyihir)
-> *${pfx} shoot <nomor>* – Balas dendam (Hunter)
 
 *🎭 Role:*
 🐺 Werewolf • 🔮 Penerawang • 💉 Dokter (≥5)
 🏹 Pemburu (≥7) • 🧙 Penyihir (≥9) • 👨‍🌾 Warga
 
-⏰ Malam: *${NIGHT_TIMEOUT_SEC} detik* | Vote: *${VOTE_TIMEOUT_SEC} detik*`
-        }, { quoted: m })
+⏰ Malam: *${NIGHT_TIMEOUT_SEC} detik* | Vote: *${VOTE_TIMEOUT_SEC} detik*
+👥 Min. 4 pemain | Ketuk tombol di bawah ⬇️`
+        let helpRows = [
+            { title: '➕ Create', description: 'Buat lobi baru', id: `${pfx} create` },
+            { title: '✅ Join', description: 'Gabung ke lobi', id: `${pfx} join` },
+            { title: '🚪 Leave', description: 'Keluar dari lobi', id: `${pfx} leave` },
+            { title: '▶️ Start', description: 'Mulai game (min. 4)', id: `${pfx} start` },
+            { title: 'ℹ️ Info', description: 'Status & pemain', id: `${pfx} info` },
+            { title: '🗳️ Votes', description: 'Status voting', id: `${pfx} votes` },
+            { title: '🏆 Leaderboard', description: 'Ranking Master WW', id: `${pfx} leaderboard` },
+            { title: '📊 Stats', description: 'Statistikmu', id: `${pfx} stats` },
+            { title: '🛑 Stop', description: 'Hentikan (Host/Admin)', id: `${pfx} stop` },
+        ]
+        return sendWWButtons(conn, m.chat, helpBody,
+            [{ type: 'list', title: '🐺 Menu Werewolf', sections: toSections(helpRows, '🐺 Menu Werewolf') }],
+            { quoted: m })
     }
 
     // ── LEADERBOARD ───────────────────────────────────────────────────────────
@@ -795,7 +895,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             _voteWarnTimeout: null,
             _prevProtectAfterHunter: null
         }
-        return m.reply(`🐺 *Lobby Werewolf dibuat!*\nKetik *${pfx} join* untuk bergabung.\nMin. 4 pemain.`)
+        return sendWWButtons(conn, m.chat,
+            `🐺 *Lobby Werewolf dibuat!*\n👥 Min. 4 pemain — ketuk tombol untuk bergabung ⬇️`,
+            [
+                { title: '✅ Join', id: `${pfx} join` },
+                { title: 'ℹ️ Info', id: `${pfx} info` },
+                { title: '▶️ Start', id: `${pfx} start` },
+            ], { quoted: m })
     }
 
     // ── JOIN ──────────────────────────────────────────────────────────────────
@@ -805,10 +911,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         if (room.state !== 'LOBBY') return m.reply('🚫 Game sudah dimulai.')
         if (room.players.find(p => p.jid === m.sender)) return m.reply('✅ Kamu sudah di lobi.')
         room.players.push({ jid: m.sender, role: null, status: 'ALIVE' })
-        return conn.sendMessage(m.chat, {
-            text     : `✅ *@${m.sender.split('@')[0]}* bergabung!\n👥 Total: *${room.players.length}* pemain\n\n${buildPlayerList(room.players)}`,
-            mentions : room.players.map(p => p.jid)
-        }, { quoted: m })
+        return sendWWButtons(conn, m.chat,
+            `✅ *@${m.sender.split('@')[0]}* bergabung!\n👥 Total: *${room.players.length}* pemain\n\n${buildPlayerList(room.players)}`,
+            [
+                { title: '▶️ Start', id: `${pfx} start` },
+                { title: 'ℹ️ Info', id: `${pfx} info` },
+                { title: '🚪 Leave', id: `${pfx} leave` },
+            ], { quoted: m, mentions: room.players.map(p => p.jid) })
     }
 
     // ── LEAVE ─────────────────────────────────────────────────────────────────
@@ -818,10 +927,12 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         let idx = room.players.findIndex(p => p.jid === m.sender)
         if (idx === -1) return m.reply('❌ Kamu tidak ada di lobi.')
         room.players.splice(idx, 1)
-        return conn.sendMessage(m.chat, {
-            text     : `🚪 *@${m.sender.split('@')[0]}* keluar.\n👥 Total: *${room.players.length}* pemain`,
-            mentions : [m.sender]
-        }, { quoted: m })
+        return sendWWButtons(conn, m.chat,
+            `🚪 *@${m.sender.split('@')[0]}* keluar.\n👥 Total: *${room.players.length}* pemain`,
+            [
+                { title: '✅ Join', id: `${pfx} join` },
+                { title: 'ℹ️ Info', id: `${pfx} info` },
+            ], { quoted: m, mentions: [m.sender] })
     }
 
     // ── INFO ──────────────────────────────────────────────────────────────────
@@ -829,10 +940,12 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         if (!room) return m.reply('⚠️ Tidak ada game aktif.')
         let alive = room.players.filter(p => p.status === 'ALIVE').length
         let dead  = room.players.filter(p => p.status === 'DEAD').length
-        return conn.sendMessage(m.chat, {
-            text     : `🐺 *INFO WEREWOLF*\n📌 Fase: *${room.state}* | 🔄 Putaran: *${room.round}*\n🟢 Hidup: *${alive}* | ☠️ Mati: *${dead}*\n\n${buildPlayerList(room.players)}`,
-            mentions : room.players.map(p => p.jid)
-        }, { quoted: m })
+        return sendWWButtons(conn, m.chat,
+            `🐺 *INFO WEREWOLF*\n📌 Fase: *${room.state}* | 🔄 Putaran: *${room.round}*\n🟢 Hidup: *${alive}* | ☠️ Mati: *${dead}*\n\n${buildPlayerList(room.players)}`,
+            [
+                { title: '🗳️ Votes', id: `${pfx} votes` },
+                { title: '🏆 Leaderboard', id: `${pfx} leaderboard` },
+            ], { quoted: m, mentions: room.players.map(p => p.jid) })
     }
 
     // ── VOTES ─────────────────────────────────────────────────────────────────
@@ -917,11 +1030,11 @@ ${roleDesc(p.role)}
             else if (p.role === 'WITCH')  msg += `🧙 Gunakan *.ww save*, *.ww poison <nomor>*, atau *.ww skip*.\n⏰ Batas waktu: *${NIGHT_TIMEOUT_SEC} detik*`
             else                          msg += `😴 Tunggu pagi hari untuk berdiskusi.`
 
-            let ok = await safeSend(conn, p.jid, { text: msg, mentions: allJids })
+            let ok = await sendWWButtons(conn, p.jid, msg, nightButtonsFor(room, p, pfx))
             if (!ok) {
                 console.warn(`[WW] Gagal kirim ke ${p.jid}, retry setelah 4 detik...`)
                 await sleep(RETRY_DELAY_MS)
-                await safeSend(conn, p.jid, { text: msg, mentions: allJids })
+                await sendWWButtons(conn, p.jid, msg, nightButtonsFor(room, p, pfx))
             }
         }
 
