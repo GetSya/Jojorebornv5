@@ -74,7 +74,7 @@ const connectionOptions = {
 	},
 	version,
 	logger: pino({ level: 'silent' }),
-	browser: Browsers.ubuntu('Edge'),
+	browser: Browsers.windows('Chrome'),
 	generateHighQualityLinkPreview: true,
 	syncFullHistory: false,
 	shouldSyncHistoryMessage: () => false,
