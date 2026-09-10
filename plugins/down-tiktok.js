@@ -1,59 +1,4 @@
-import axios from 'axios'
-
-// ── API 1 (utama): api-faa ──
-async function viaFaa(url) {
-  const { data } = await axios.get(
-    `https://api-faa.my.id/faa/tiktok?url=${encodeURIComponent(url)}`,
-    { timeout: 60000 }
-  )
-  const r = data?.result
-  if (!data?.status || !r) throw new Error('FAA tidak mengembalikan data')
-
-  // Slideshow / foto: data berupa array, atau type image
-  if (Array.isArray(r.data)) return { kind: 'images', images: r.data.filter(Boolean), meta: r }
-  if (/image/i.test(r.type || '')) {
-    const raw = Array.isArray(r.images) ? r.images : [r.data].filter(Boolean)
-    const images = raw.map((x) => (typeof x === 'string' ? x : (x?.url || x?.link))).filter(Boolean)
-    if (!images.length) throw new Error('FAA: gambar tidak ditemukan')
-    return { kind: 'images', images, meta: r }
-  }
-
-  const videoUrl = r.alternatives?.hd || r.data
-  if (!videoUrl || typeof videoUrl !== 'string') throw new Error('FAA: video tidak ditemukan')
-  return { kind: 'video', video: videoUrl, meta: r }
-}
-
-// ── API 2 (fallback): siputzx ──
-async function viaSiputzx(url) {
-  const { data } = await axios.get(
-    `https://api.siputzx.my.id/api/d/tiktok/v2?url=${encodeURIComponent(url)}`,
-    { timeout: 60000 }
-  )
-  const d = data?.data
-  if (!data?.status || !d) throw new Error('Siputzx tidak mengembalikan data')
-
-  if (Array.isArray(d.images) && d.images.length) {
-    const images = d.images.map((x) => (typeof x === 'string' ? x : (x?.url || x?.link))).filter(Boolean)
-    if (!images.length) throw new Error('Siputzx: gambar tidak ditemukan')
-    return { kind: 'images', images, meta: d }
-  }
-
-  const videoUrl = d.no_watermark_link_hd || d.no_watermark_link || d.watermark_link
-  if (!videoUrl) throw new Error('Siputzx: video tidak ditemukan')
-  return { kind: 'video', video: videoUrl, meta: d }
-}
-
-function videoCaption(meta = {}) {
-  const lines = ['🎬 *TIKTOK VIDEO*']
-  const title = meta.title || meta.desc || meta.description
-  if (title) lines.push(`📝 ${title}`)
-  if (meta.duration) lines.push(`⏱️ Durasi: ${meta.duration}`)
-  if (meta.taken_at) lines.push(`📅 ${meta.taken_at}`)
-  if (meta.region) lines.push(`🌍 Region: ${meta.region}`)
-  const id = meta.id || meta.itemId
-  if (id) lines.push(`🆔 ${id}`)
-  return lines.join('\n')
-}
+import { fetchTiktok, tiktokVideoCaption } from '../lib/tiktokdl.js'
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
   const url = args[0] || m.quoted?.text
@@ -66,14 +11,8 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   await m.react('🕒').catch(() => {})
 
   try {
-    // Coba API utama, gagal -> fallback
-    let result
-    try {
-      result = await viaFaa(url)
-    } catch (e) {
-      console.error('[tiktok] FAA gagal, coba siputzx:', e.message)
-      result = await viaSiputzx(url)
-    }
+    // API FAA (utama) -> fallback Siputzx (di dalam fetchTiktok)
+    const result = await fetchTiktok(url)
 
     // Gambar/slideshow: kirim tiap gambar TANPA caption
     if (result.kind === 'images') {
@@ -88,7 +27,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     await conn.sendMessage(m.chat, {
       video: { url: result.video },
       mimetype: 'video/mp4',
-      caption: videoCaption(result.meta)
+      caption: tiktokVideoCaption(result.meta)
     }, { quoted: m })
     await m.react('✅').catch(() => {})
 

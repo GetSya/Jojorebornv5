@@ -1,4 +1,5 @@
 import { smsg } from './lib/simple.js';
+import { fetchTiktok, tiktokVideoCaption } from './lib/tiktokdl.js';
 import { format } from 'util';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -79,29 +80,32 @@ if (tiktokRegex.test(m.text) && !m.isCommand) {
     try {
         let linkMatch = m.text.match(/(https?:\/\/[^\s]+)/g);
         if (!linkMatch) return;
-        let link = linkMatch[0];
+        // Ambil link TikTok-nya (abaikan link lain dalam pesan yang sama)
+        let link = linkMatch.find(u => tiktokRegex.test(u)) || linkMatch[0];
 
         await this.reply(m.chat, '⏳ *Auto TikTok terdeteksi, memproses...*', m);
 
-        let apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(link)}`;
-        let res = await fetch(apiUrl);
-        let json = await res.json();
-        let data = json.data;
-
-        if (!data) return;
+        // API FAA (utama) -> fallback Siputzx (di dalam fetchTiktok)
+        let result;
+        try {
+            result = await fetchTiktok(link);
+        } catch (e) {
+            console.error("TikTok Auto API gagal:", e?.message || e);
+            return;
+        }
 
         // 3. Potong Limit User sebesar 1 setelah berhasil fetch
         if (!isPrems) user.limit -= 1
 
-        if (data.images && data.images.length > 0) {
-            for (let img of data.images) {
+        if (result.kind === 'images') {
+            for (let img of result.images) {
                 await this.sendMessage(m.chat, { image: { url: img } });
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         } else {
-            await this.sendMessage(m.chat, { 
-                video: { url: data.play }, 
-                caption: `✅ *Auto Download*\n\n📝 *Title:* ${data.title}\n👤 *Author:* ${data.author.nickname}\n\n*Limit terpakai:* 1`
+            await this.sendMessage(m.chat, {
+                video: { url: result.video },
+                caption: `✅ *Auto Download*\n\n${tiktokVideoCaption(result.meta)}\n\n*Limit terpakai:* 1`
             }, { quoted: m });
         }
 
