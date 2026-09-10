@@ -1,0 +1,88 @@
+{
+  "guilds": {},
+  "meta": {
+    "created": 1757580000000,
+    "version": 1
+  },
+  "parties": {},
+  "players": {
+    "6288214772441@s.whatsapp.net": {
+      "nama": "arasya",
+      "classId": "warrior",
+      "level": 2,
+      "exp": 149,
+      "hp": 245,
+      "maxHp": 245,
+      "mana": 100,
+      "maxMana": 100,
+      "atk": 27,
+      "def": 20,
+      "spd": 17,
+      "crit": 5,
+      "luck": 5,
+      "gold": 817,
+      "wilayah": "desa",
+      "inv": [
+        {
+          "id": "php",
+          "n": "Potion HP +300",
+          "qty": 2
+        },
+        {
+          "id": "pmp",
+          "n": "Potion MP +200",
+          "qty": 1
+        },
+        {
+          "id": "php",
+          "n": "Potion HP +300",
+          "qty": 1
+        }
+      ],
+      "equip": {
+        "weapon": null,
+        "armor": null,
+        "helmet": null,
+        "boots": null,
+        "ring": null,
+        "necklace": null
+      },
+      "kills": 0,
+      "dgClear": 0,
+      "skillPoint": 3,
+      "quest": {
+        "main": 0,
+        "daily": {},
+        "weekly": {},
+        "lastDaily": "",
+        "lastWeekly": ""
+      },
+      "ach": [],
+      "rep": {
+        "kerajaan": 0,
+        "bawahtanah": 0,
+        "pemburu": 0,
+        "penyihir": 0,
+        "iblis": 0
+      },
+      "title": "Pemula",
+      "battle": null,
+      "defend": false,
+      "cd": {
+        "adv": 1789083860235,
+        "hunt": 1789083867588,
+        "dg": 0,
+        "wb": 0
+      },
+      "created": 1789083805374
+    }
+  },
+  "tradePending": {},
+  "worldBoss": null,
+  "groups": {
+    "120363043223925309@g.us": {
+      "enabled": true,
+      "updated": 1789083790677
+    }
+  }
+}

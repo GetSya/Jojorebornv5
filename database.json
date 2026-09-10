@@ -2,7 +2,7 @@
   "users": {
     "6288213292687@s.whatsapp.net": {
       "name": "+62 882-1329-2687",
-      "exp": 474150,
+      "exp": 474313,
       "money": 2000001004020,
       "hutang": 0,
       "hutangTime": 0,
@@ -173913,8 +173913,8 @@
     },
     "6288214772441@s.whatsapp.net": {
       "name": "arasya",
-      "exp": 11088,
-      "money": 997305812,
+      "exp": 11653,
+      "money": 997306272,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
@@ -177333,8 +177333,7 @@
       "notifsholat": true,
       "kotaSholat": "",
       "namaKota": "",
-      "lastNotif": "",
-      "notifberbuka": true
+      "lastNotif": ""
     },
     "120363414827708099@g.us": {
       "sWelcome": "hallo @user selamat datang di grup @subject. Jangan lupa lagi puasa. Intro:\nNama:\nUmur:",
@@ -177351,7 +177350,6 @@
       "kotaSholat": "",
       "namaKota": "",
       "lastNotif": "",
-      "notifberbuka": true,
       "antitagsw": false
     },
     "120363183842805991@g.us": {
@@ -177530,8 +177528,7 @@
       "notifsholat": true,
       "kotaSholat": "1624",
       "namaKota": "KAB. SIDOARJO",
-      "lastNotif": "14:51",
-      "notifberbuka": true
+      "lastNotif": "14:51"
     },
     "120363425732276542@g.us": {
       "sWelcome": "",
@@ -177564,8 +177561,7 @@
       "kotaSholat": "",
       "namaKota": "",
       "lastNotif": "",
-      "antitagsw": true,
-      "notifberbuka": true
+      "antitagsw": true
     },
     "120363405612227343@g.us": {
       "sWelcome": "",
@@ -177646,7 +177642,6 @@
       "kotaSholat": "1301",
       "namaKota": "KOTA JAKARTA",
       "lastNotif": "11:53",
-      "notifberbuka": true,
       "antitagsw": true
     },
     "120363408257817625@g.us": {
@@ -177829,8 +177824,7 @@
       "notifsholat": true,
       "kotaSholat": "1204",
       "namaKota": "KAB. BOGOR",
-      "lastNotif": "11:53",
-      "notifberbuka": true
+      "lastNotif": "11:53"
     },
     "status@broadcast": {
       "sWelcome": "",
@@ -178144,8 +178138,7 @@
       "notifsholat": false,
       "kotaSholat": "1301",
       "namaKota": "KOTA JAKARTA",
-      "lastNotif": "17:47",
-      "notifberbuka": true
+      "lastNotif": "17:47"
     },
     "6282323270226@s.whatsapp.net": {
       "sWelcome": "",
@@ -178209,8 +178202,7 @@
       "notifsholat": false,
       "kotaSholat": "2310",
       "namaKota": "KOTA SAMARINDA",
-      "lastNotif": "18:32",
-      "notifberbuka": false
+      "lastNotif": "18:32"
     },
     "6283842006372@s.whatsapp.net": {
       "sWelcome": "",
@@ -181671,7 +181663,6 @@
       "kotaSholat": "",
       "namaKota": "",
       "lastNotif": "",
-      "notifberbuka": true,
       "antivirtex": true
     },
     "62895406432427@s.whatsapp.net": {
@@ -186128,7 +186119,6 @@
       "antitagall": true,
       "antitoxic": true,
       "antivirtex": true,
-      "notifberbuka": true,
       "antilink": false
     },
     "120363409139764972@g.us": {
@@ -187572,8 +187562,7 @@
       "notifsholat": false,
       "kotaSholat": "",
       "namaKota": "",
-      "lastNotif": "",
-      "notifberbuka": true
+      "lastNotif": ""
     },
     "6285380153926@s.whatsapp.net": {
       "sWelcome": "",
@@ -201782,10 +201771,10 @@
   },
   "stats": {
     "main-menu.js": {
-      "total": 3416,
-      "success": 3416,
-      "last": 1789015138590,
-      "lastSuccess": 1789015138590
+      "total": 3420,
+      "success": 3420,
+      "last": 1789082249329,
+      "lastSuccess": 1789082249329
     },
     "xp-profile.js": {
       "total": 157,
@@ -201956,10 +201945,10 @@
       "lastSuccess": 1770956670494
     },
     "sticker-stickers.js": {
-      "total": 980,
-      "success": 978,
-      "last": 1789015574205,
-      "lastSuccess": 1789015574205
+      "total": 983,
+      "success": 981,
+      "last": 1789082338314,
+      "lastSuccess": 1789082338314
     },
     "game-slot.js": {
       "total": 1912,
@@ -202052,10 +202041,10 @@
       "lastSuccess": 1780435026237
     },
     "main-anonymous.js": {
-      "total": 174,
-      "success": 157,
-      "last": 1789009358002,
-      "lastSuccess": 1789009358002
+      "total": 176,
+      "success": 159,
+      "last": 1789081823109,
+      "lastSuccess": 1789081823109
     },
     "fun-cekcantik.js": {
       "total": 613,
@@ -203120,16 +203109,22 @@
       "lastSuccess": 1788839518935
     },
     "xp-login.js": {
-      "total": 12,
-      "success": 12,
-      "last": 1789015171528,
-      "lastSuccess": 1789015171528
+      "total": 13,
+      "success": 13,
+      "last": 1789082423254,
+      "lastSuccess": 1789082423254
     },
     "tools-togif.js": {
       "total": 2,
       "success": 2,
       "last": 1789015136796,
       "lastSuccess": 1789015136796
+    },
+    "rpg-elarion.js": {
+      "total": 14,
+      "success": 14,
+      "last": 1789083890881,
+      "lastSuccess": 1789083890881
     }
   },
   "msgs": {},

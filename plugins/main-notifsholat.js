@@ -4,19 +4,16 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     let chat = global.db.data.chats[m.chat] || {}
     if (!global.db.data.chats[m.chat]) global.db.data.chats[m.chat] = chat
 
-    if (command === 'notifsholat' || command === 'notifberbuka') {
+    if (command === 'notifsholat') {
         if (!text) throw `*Format Salah!*\nContoh: *${usedPrefix + command} on* atau *off*`
         let type = text.toLowerCase()
-        let isBerbuka = command === 'notifberbuka'
-        
+
         if (type === 'on') {
-            if (isBerbuka) chat.notifberbuka = true 
-            else chat.notifsholat = true
-            m.reply(`✅ Notifikasi ${isBerbuka ? 'Buka Puasa' : 'Sholat'} berhasil *DIAKTIFKAN* untuk chat ini.`)
+            chat.notifsholat = true
+            m.reply(`✅ Notifikasi Sholat berhasil *DIAKTIFKAN* untuk chat ini.`)
         } else if (type === 'off') {
-            if (isBerbuka) chat.notifberbuka = false
-            else chat.notifsholat = false
-            m.reply(`❌ Notifikasi ${isBerbuka ? 'Buka Puasa' : 'Sholat'} berhasil *DIMATIKAN*.`)
+            chat.notifsholat = false
+            m.reply(`❌ Notifikasi Sholat berhasil *DIMATIKAN*.`)
         } else throw 'Pilih *on* atau *off*'
     }
 
@@ -43,13 +40,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         teks += `📍 Lokasi: *${json.data.lokasi}*\n`
         teks += `📅 Tanggal: *${j.tanggal}*\n\n`
         teks += `◦ Imsak: ${j.imsak}\n◦ Subuh: ${j.subuh}\n◦ Dzuhur: ${j.dzuhur}\n◦ Ashar: ${j.ashar}\n◦ Maghrib: ${j.maghrib}\n◦ Isya: ${j.isya}\n\n`
-        teks += `_Gunakan *${usedPrefix}notifsholat on* atau *${usedPrefix}notifberbuka on*_`
+        teks += `_Gunakan *${usedPrefix}notifsholat on*_`
         m.reply(teks)
     }
 }
 
-handler.help = ['notifsholat', 'notifberbuka', 'setkota', 'jadwalsholat']
+handler.help = ['notifsholat', 'setkota', 'jadwalsholat']
 handler.tags = ['tools']
-handler.command = /^(notifsholat|notifberbuka|setkota|jadwalsholat)$/i
+handler.command = /^(notifsholat|setkota|jadwalsholat)$/i
 
 export default handler

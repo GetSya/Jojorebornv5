@@ -20,7 +20,6 @@ global.pakasir = {
 };
 
 /*============== JVAULT LOGIN (bot.acamedia.xyz) ==============*/
-// Sumber kebenaran user ada di JVault bin ini.
 // Login bot = cek nomor WA pengirim ada di users[].whatsapp.
 // Kalau tidak ada → suruh login/register dulu ke loginUrl.
 global.jvault = {

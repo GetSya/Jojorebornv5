@@ -411,7 +411,7 @@ setInterval(async () => {
         }
     }
 }, 60 * 1000); // Cek setiap 1 menit
-// --- FITUR AUTO NOTIF SHOLAT & BUKA PUASA ---
+// --- FITUR AUTO NOTIF SHOLAT ---
 setInterval(async () => {
     if (!global.db.data || !global.conn) return
 
@@ -444,36 +444,13 @@ setInterval(async () => {
                         let chat = global.db.data.chats[jid]
                         if (chat.kotaSholat !== idKota || chat.lastNotif === waktu) continue
 
-                        // 1. Logika Notif Sholat Biasa
+                        // Logika Notif Sholat
                         if (chat.notifsholat) {
                             let caption = `🔔 *WAKTUNYA SHOLAT ${nama.toUpperCase()}* 🔔\n\n`
                             caption += `📍 Wilayah: *${json.data.lokasi}*\n`
                             caption += `⏰ Waktu: *${waktu}* WIB\n\n`
                             caption += `_"Shalatlah tepat pada waktunya, sesungguhnya shalat itu adalah kewajiban yang ditentukan waktunya atas orang-orang yang beriman."_`
                             await global.conn.sendMessage(jid, { text: caption })
-                            chat.lastNotif = waktu 
-                        }
-
-                        // 2. Logika Khusus Berbuka Puasa (Hanya Maghrib)
-                        if (chat.notifberbuka && nama === 'maghrib') {
-                            let captionBuka = `🍹 *SELAMAT BERBUKA PUASA* 🍹\n\n`
-                            captionBuka += `Alhamdulillah, waktu Maghrib telah tiba untuk wilayah *${json.data.lokasi}* dan sekitarnya.\n\n`
-                            captionBuka += `⏰ Waktu: *${waktu}* WIB\n\n`
-                            captionBuka += `_“Telah hilang rasa haus, dan urat-urat telah basah serta pahala telah tetap, insya Allah.”_`
-                            
-                            await global.conn.sendMessage(jid, { 
-                                text: captionBuka,
-                                contextInfo: {
-                                    externalAdReply: {
-                                        title: "Waktunya Berbuka Puasa!",
-                                        body: `Wilayah ${json.data.lokasi}`,
-                                        thumbnailUrl: "https://files.catbox.moe/gel6ru.jpg", // Ganti dengan gambar makanan/ramadhan
-                                        sourceUrl: "",
-                                        mediaType: 1,
-                                        renderLargerThumbnail: true
-                                    }
-                                }
-                            })
                             chat.lastNotif = waktu
                         }
                     }
