@@ -59,17 +59,7 @@ let handler = async (m, { conn, text }) => {
     // 3. Kirim file Audio
     await conn.sendMessage(m.chat, {
       audio: audioBuffer,
-      mimetype: 'audio/mpeg',
-      contextInfo: {
-        externalAdReply: {
-          title: title,
-          body: `By ${author} | ${json.creator}`,
-          showAdAttribution: true,
-          mediaType: 1,
-          sourceUrl: url,
-          thumbnailUrl: thumbnail 
-        }
-      }
+      mimetype: 'audio/mpeg'
     }, { quoted: m })
 
     await m.react('✅')

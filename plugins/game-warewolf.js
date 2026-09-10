@@ -275,6 +275,55 @@ function voteListButtons(room, pfx) {
     return rows.length ? [{ type: 'list', title: '🗳️ Vote Eksekusi', sections: toSections(rows, '🗳️ Pilih Pemain') }] : []
 }
 
+// =============================================================================
+//  LOBBY MESSAGE (teks biasa yang DI-EDIT tiap join/leave, bukan pesan baru)
+//  Key pesan lobi disimpan di room.lobbyKey. Kalau edit gagal (mis. pesan
+//  lebih dari 15 menit / sudah dihapus), fallback kirim pesan baru + simpan
+//  key barunya.
+// =============================================================================
+
+/** Susun teks + mentions daftar pemain lobi */
+function lobbyText(room, pfx) {
+    let lines = room.players.map((p, i) => `${i + 1}. @${p.jid.split('@')[0]}`)
+    let text =
+        `🐺 *LOBBY WEREWOLF* 🐺\n` +
+        `👥 Pemain: *${room.players.length}* (min. 4)\n\n` +
+        (lines.length ? lines.join('\n') : '_Belum ada pemain._') +
+        `\n\n➕ Gabung: *${pfx} join*\n` +
+        `🚪 Keluar: *${pfx} leave*\n` +
+        `▶️ Mulai (min. 4): *${pfx} start*`
+    return { text, mentions: room.players.map(p => p.jid) }
+}
+
+/** Edit pesan lobi; kirim baru kalau belum ada / edit gagal */
+async function refreshLobby(room, conn, pfx) {
+    const { text, mentions } = lobbyText(room, pfx)
+    if (room.lobbyKey) {
+        try {
+            await conn.relayMessage(room.id, {
+                protocolMessage: {
+                    key: room.lobbyKey,
+                    type: 14,
+                    editedMessage: {
+                        extendedTextMessage: { text, contextInfo: { mentionedJid: mentions } }
+                    }
+                }
+            }, {})
+            return true
+        } catch (e) {
+            console.error('[WW] Edit lobi gagal, kirim baru:', e?.message || e)
+        }
+    }
+    try {
+        const sent = await conn.sendMessage(room.id, { text, mentions })
+        if (sent?.key) room.lobbyKey = sent.key
+        return true
+    } catch (e) {
+        console.error('[WW] Kirim lobi gagal:', e?.message || e)
+        return false
+    }
+}
+
 /**
  * Kirim buttons, fallback otomatis ke teks (+mentions) kalau gagal.
  * Tidak pernah throw — return true/false seperti safeSend.
@@ -284,7 +333,8 @@ async function sendWWButtons(conn, jid, text, buttons, opts = {}) {
         if (buttons && buttons.length > 0) {
             await conn.sendButtons(jid, text, buttons, {
                 footer: opts.footer || '🐺 Ultimate Werewolf',
-                ...(opts.quoted ? { quoted: opts.quoted } : {})
+                ...(opts.quoted ? { quoted: opts.quoted } : {}),
+                ...(opts.mentions?.length ? { mentions: opts.mentions } : {})
             })
             return true
         }
@@ -889,19 +939,16 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             hunterPending: null,
             witch: { canSave: true, canPoison: true },
             nightAction: freshNightAction(),
+            lobbyKey: null,
             _nightTimeout: null,
             _nightWarnTimeout: null,
             _voteTimeout: null,
             _voteWarnTimeout: null,
             _prevProtectAfterHunter: null
         }
-        return sendWWButtons(conn, m.chat,
-            `🐺 *Lobby Werewolf dibuat!*\n👥 Min. 4 pemain — ketuk tombol untuk bergabung ⬇️`,
-            [
-                { title: '✅ Join', id: `${pfx} join` },
-                { title: 'ℹ️ Info', id: `${pfx} info` },
-                { title: '▶️ Start', id: `${pfx} start` },
-            ], { quoted: m })
+        // Pesan lobi = teks biasa (key-nya disimpan untuk di-edit tiap join/leave)
+        await refreshLobby(global.werewolf[m.chat], conn, pfx)
+        return
     }
 
     // ── JOIN ──────────────────────────────────────────────────────────────────
@@ -911,13 +958,10 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         if (room.state !== 'LOBBY') return m.reply('🚫 Game sudah dimulai.')
         if (room.players.find(p => p.jid === m.sender)) return m.reply('✅ Kamu sudah di lobi.')
         room.players.push({ jid: m.sender, role: null, status: 'ALIVE' })
-        return sendWWButtons(conn, m.chat,
-            `✅ *@${m.sender.split('@')[0]}* bergabung!\n👥 Total: *${room.players.length}* pemain\n\n${buildPlayerList(room.players)}`,
-            [
-                { title: '▶️ Start', id: `${pfx} start` },
-                { title: 'ℹ️ Info', id: `${pfx} info` },
-                { title: '🚪 Leave', id: `${pfx} leave` },
-            ], { quoted: m, mentions: room.players.map(p => p.jid) })
+        // Edit pesan lobi (tidak kirim pesan baru)
+        await refreshLobby(room, conn, pfx)
+        try { await m.react('✅') } catch {}
+        return
     }
 
     // ── LEAVE ─────────────────────────────────────────────────────────────────
@@ -927,12 +971,10 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         let idx = room.players.findIndex(p => p.jid === m.sender)
         if (idx === -1) return m.reply('❌ Kamu tidak ada di lobi.')
         room.players.splice(idx, 1)
-        return sendWWButtons(conn, m.chat,
-            `🚪 *@${m.sender.split('@')[0]}* keluar.\n👥 Total: *${room.players.length}* pemain`,
-            [
-                { title: '✅ Join', id: `${pfx} join` },
-                { title: 'ℹ️ Info', id: `${pfx} info` },
-            ], { quoted: m, mentions: [m.sender] })
+        // Edit pesan lobi (tidak kirim pesan baru)
+        await refreshLobby(room, conn, pfx)
+        try { await m.react('👋') } catch {}
+        return
     }
 
     // ── INFO ──────────────────────────────────────────────────────────────────
@@ -985,6 +1027,19 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         room.witch         = { canSave: true, canPoison: true }
         room.nightAction   = freshNightAction()
         room.votes         = {}
+
+        // Tutup lobi: edit pesan lobi jadi status mulai (best-effort)
+        try {
+            if (room.lobbyKey) {
+                await conn.relayMessage(room.id, {
+                    protocolMessage: {
+                        key: room.lobbyKey,
+                        type: 14,
+                        editedMessage: { conversation: `🎭 *GAME DIMULAI!* 🎭\n👥 *${total} Pemain*\nLobi ditutup — selamat bermain!` }
+                    }
+                }, {})
+            }
+        } catch {}
 
         let roleBreakdown = Object.entries(roleConf)
             .filter(([, c]) => c > 0)
