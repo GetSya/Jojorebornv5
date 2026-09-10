@@ -18,6 +18,10 @@
 // 5. Pesan command (diawali prefix) TIDAK dibajak.
 
 import fetch from 'node-fetch'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+
+const execFileAsync = promisify(execFile)
 
 // ── KONFIG ──────────────────────────────────────
 // Ganti COOKIE kalau expired (API balas error / respons kosong).
@@ -63,6 +67,56 @@ function isAiReply(quotedId) {
 // Ambil nomor dari JID (buang device id ":xx" & domain)
 const num = (jid = '') => String(jid).split('@')[0].split(':')[0].replace(/[^0-9]/g, '')
 
+// ── TTS: jawaban AI dijadikan voice note (model nahida) ────────
+// Gagal di tahap mana pun -> lempar error -> pemanggil fallback ke teks.
+async function ttsNahidaUrl(text) {
+  const res = await fetch(
+    `https://api-faa.my.id/faa/tts-legkap?text=${encodeURIComponent(text)}`
+  )
+  if (!res.ok) throw new Error(`TTS API ${res.status}`)
+  const json = await res.json()
+  const nahida = json?.result?.find?.((r) => r?.model === 'nahida' && r?.url)
+  if (!nahida?.url) throw new Error('Model nahida gagal generate suara')
+  return nahida.url
+}
+
+async function ttsVoiceNote(text) {
+  const url = await ttsNahidaUrl(text)
+  const dl = await fetch(url)
+  if (!dl.ok) throw new Error('Download hasil TTS gagal')
+  const wav = Buffer.from(await dl.arrayBuffer())
+  if (!wav.length) throw new Error('File TTS kosong')
+  // wav -> opus ogg (format voice note WhatsApp) via file tmp
+  // (pipe stdin macet di ffmpeg Windows, jadi pakai file)
+  const { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync } = await import('fs')
+  const { join } = await import('path')
+  const tmpDir = join(process.cwd(), 'tmp')
+  if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true })
+  const base = join(tmpDir, `tts_${Date.now()}_${Math.floor(Math.random() * 1e6)}`)
+  const inWav = base + '.wav'
+  const outOgg = base + '.ogg'
+  try {
+    writeFileSync(inWav, wav)
+    await execFileAsync('ffmpeg', [
+      '-y', '-loglevel', 'error',
+      '-i', inWav,
+      '-c:a', 'libopus', '-b:a', '48k',
+      '-f', 'ogg', outOgg
+    ])
+    if (!existsSync(outOgg)) throw new Error('Konversi opus gagal')
+    const ogg = readFileSync(outOgg)
+    if (!ogg?.length) throw new Error('Hasil opus kosong')
+    return ogg
+  } finally {
+    for (const p of [inWav, outOgg]) {
+      try { if (existsSync(p)) unlinkSync(p) } catch {}
+    }
+  }
+}
+
+// Jawaban panjang (>400 char) langsung teks saja (TTS berat & lama).
+const TTS_MAX_CHAR = 400
+
 async function askGemini(question) {
   const url =
     `https://api.siputzx.my.id/api/ai/gemini` +
@@ -92,6 +146,23 @@ handler.before = async function (m, { conn }) {
     } catch {}
 
     const answer = await askGemini(query)
+
+    // 1. Coba jawab pakai voice note (model nahida)
+    if (answer.length <= TTS_MAX_CHAR) {
+      try {
+        try { await conn.sendPresenceUpdate('recording', m.chat) } catch {}
+        const vn = await ttsVoiceNote(answer)
+        const sent = await conn.sendMessage(m.chat,
+          { audio: vn, mimetype: 'audio/ogg; codecs=opus', ptt: true },
+          { quoted: m })
+        rememberAiReply(sent?.key?.id)
+        return true
+      } catch (e) {
+        console.error('[ai-tagbot][vn] gagal, fallback teks:', e?.message || e)
+      }
+    }
+
+    // 2. Fallback: teks biasa (juga untuk jawaban panjang)
     const sent = await conn.reply(m.chat, answer, m)
     rememberAiReply(sent?.key?.id)
     return true

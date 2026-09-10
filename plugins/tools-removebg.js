@@ -37,6 +37,25 @@ const uploadImage = async (buffer, ext) => {
 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
+  // Satu pesan status yang di-edit tiap tahap (tidak spam pesan baru)
+  let statusKey = null
+  const setStatus = async (text) => {
+    try {
+      if (!statusKey) {
+        const sent = await conn.sendMessage(m.chat, { text }, { quoted: m })
+        if (sent?.key) statusKey = sent.key
+      } else {
+        await conn.relayMessage(m.chat, {
+          protocolMessage: {
+            key: statusKey,
+            type: 14,
+            editedMessage: { conversation: text }
+          }
+        }, {})
+      }
+    } catch {}
+  }
+
   try {
     let q = m.quoted ? m.quoted : m
     let mime = (q.msg || q).mimetype || q.mediaType || ''
@@ -49,7 +68,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       if (!media?.length) throw 'Gagal mengunduh media!'
       let ext = (mime.split('/')[1] || 'jpg').split(';')[0]
       if (ext === 'jpeg') ext = 'jpg'
-      await m.reply('⏳ Mengupload gambar...')
+      await setStatus('⏳ Mengupload gambar...')
       imageUrl = await uploadImage(media, ext)
     } else {
       // 2. Dari URL gambar langsung di text
@@ -64,7 +83,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             `Contoh:\n${usedPrefix + command} https://example.com/foto.jpg`
     }
 
-    await m.reply('⏳ Menghapus background...')
+    await setStatus('⏳ Menghapus background...')
 
     // 3. Panggil API removebg (balasan = JSON berisi url hasil)
     const apiUrl = `https://api-faa.my.id/faa/removebg?url=${encodeURIComponent(imageUrl)}`
@@ -74,6 +93,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     // 4. Kirim sebagai DOKUMEN agar background transparan tidak rusak
     //    (kalau dikirim sebagai image, WhatsApp mengubahnya jadi JPG)
+    await setStatus('✅ Background berhasil dihapus!')
     await conn.sendMessage(m.chat, {
       document: { url: resultUrl },
       mimetype: 'image/png',
