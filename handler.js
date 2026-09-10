@@ -65,8 +65,13 @@ m.exp += Math.ceil(Math.random() * 10);
 
 // 2. BARU JALANKAN AUTO DOWNLOAD TIKTOK
 
-const tiktokRegex = /(tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com|v\.doubletick\.com)/i; 
-if (tiktokRegex.test(m.text) && !m.isCommand) {
+const tiktokRegex = /(tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com|v\.doubletick\.com)/i;
+// Lewati pesan command (mis. ".tiktok <url>") agar tidak download 2x.
+// m.isCommand belum di-set saat blok ini jalan (baru di-set di plugin loop),
+// jadi cek prefix secara langsung. Command ditangani plugin down-tiktok,
+// auto-download hanya untuk link polos.
+const isCmdMsg = (global.prefix && global.prefix.test(m.text)) || m.isCommand;
+if (tiktokRegex.test(m.text) && !isCmdMsg) {
     // 1. Cek Database User
     let user = global.db.data.users[m.sender]
 	
@@ -577,36 +582,79 @@ export async function participantsUpdate({ id, participants, action, simulate = 
             try {
                 const skia = await getSkia();
                 if (!skia) throw new Error('skia-canvas tidak tersedia');
-                // Inisialisasi Canvas
-                const canvas = new skia.Canvas(1200, 600);
+                // Inisialisasi Canvas — desain kartu WELCOME/GOODBYE (1200x450)
+                const W = 1200, H = 450;
+                const isJoin = action === 'add';
+                const ACCENT = isJoin ? '#22c55e' : '#ef4444';
+                const BIG_TEXT = isJoin ? 'WELCOME' : 'GOODBYE';
+                const canvas = new skia.Canvas(W, H);
                 const ctx = canvas.getContext('2d');
 
-                // 1. Latar Belakang dari file bg.png
-                let background;
-                const bgPath = './media/bg.png';
-                if (fs.existsSync(bgPath)) {
-                    background = await skia.loadImage(bgPath);
-                } else {
-                    // Fallback jika file tidak ada
-                    background = await skia.loadImage('https://via.placeholder.com/1200x600/1e2b3a/ffffff?text=Background');
+                // Helper rounded-rect (skia-canvas tidak selalu punya ctx.roundRect)
+                const rr = (x, y, w, h, r) => {
+                    if (w < 2 * r) r = w / 2;
+                    if (h < 2 * r) r = h / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x + r, y);
+                    ctx.lineTo(x + w - r, y);
+                    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                    ctx.lineTo(x + w, y + h - r);
+                    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                    ctx.lineTo(x + r, y + h);
+                    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                    ctx.lineTo(x, y + r);
+                    ctx.quadraticCurveTo(x, y, x + r, y);
+                    ctx.closePath();
+                };
+                const ord = (n) => {
+                    const s = ['TH', 'ST', 'ND', 'RD'], v = n % 100;
+                    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+                };
+
+                // 1. Background: media/welcome-bg.png (bisa diganti) -> bg.png -> warna solid
+                let background = null;
+                for (const bgPath of ['./media/welcome-bg.png', './media/bg.png']) {
+                    if (fs.existsSync(bgPath)) {
+                        try { background = await skia.loadImage(bgPath); break; } catch {}
+                    }
                 }
-                ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+                if (background) ctx.drawImage(background, 0, 0, W, H);
+                else { ctx.fillStyle = '#0a1526'; ctx.fillRect(0, 0, W, H); }
 
-                // 2. Overlay gelap tipis untuk kontras teks
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // 2. Overlay gelap untuk kontras
+                ctx.fillStyle = 'rgba(4, 8, 18, 0.62)';
+                ctx.fillRect(0, 0, W, H);
 
-                // 3. Nama Grup (atas, tengah)
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = 'rgba(0,0,0,0.8)';
-                ctx.shadowOffsetX = 4;
-                ctx.shadowOffsetY = 4;
-                ctx.font = 'bold 50px "Poppins", "Segoe UI", "Roboto", sans-serif';
-                ctx.fillStyle = '#ffffff';
+                // 3. Teks raksasa outline di latar (efek watermark)
+                ctx.save();
+                ctx.globalAlpha = 0.14;
+                ctx.font = '900 150px "Poppins", "Segoe UI", "Roboto", sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText(groupMetadata.subject || 'WHATSAPP GROUP', 600, 90);
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ffffff';
+                ctx.strokeText(BIG_TEXT, W / 2 + 60, 215);
+                ctx.restore();
 
-                // 4. Ambil foto profil user
+                // 4. Garis diagonal aksen (ciri khas desain)
+                ctx.save();
+                ctx.strokeStyle = ACCENT;
+                ctx.lineWidth = 5;
+                ctx.beginPath(); ctx.moveTo(885, 0); ctx.lineTo(735, H); ctx.stroke();
+                ctx.restore();
+
+                // 5. Judul + nama grup
+                let groupName = groupMetadata.subject || 'WHATSAPP GROUP';
+                ctx.textAlign = 'left';
+                ctx.fillStyle = ACCENT;
+                ctx.font = 'bold 40px "Poppins", "Segoe UI", "Roboto", sans-serif';
+                ctx.fillText(isJoin ? '✦ W E L C O M E' : '✦ G O O D B Y E', 300, 72);
+                ctx.fillRect(300, 86, 120, 6); // garis pendek bawah judul
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 60px "Poppins", "Segoe UI", "Roboto", sans-serif';
+                let gName = groupName.length > 22 ? groupName.substring(0, 20) + '...' : groupName;
+                ctx.fillText(gName, 300, 152);
+
+                // 6. Foto profil user (lingkaran + ring aksen + dot)
                 let pp;
                 try {
                     let ppUrl = await this.profilePictureUrl(user, 'image').catch(_ => null);
@@ -616,70 +664,74 @@ export async function participantsUpdate({ id, participants, action, simulate = 
                         throw new Error('No profile picture');
                     }
                 } catch (e) {
-                    // Gambar default jika tidak ada foto profil
-                    pp = await skia.loadImage('https://thumbs.dreamstime.com/b/default-avatar-profile-icon-vector-social-media-user-image-182145777.jpg'); // Ganti dengan URL default yang sesuai
+                    pp = await skia.loadImage('https://thumbs.dreamstime.com/b/default-avatar-profile-icon-vector-social-media-user-image-182145777.jpg');
                 }
-
-                // 5. Ukuran dan posisi foto profil (lingkaran di kiri)
-                const fotoSize = 120;
-                const fotoX = 340; // posisi kiri
-                const fotoY = 200;
-
-                // Gambar lingkaran dengan efek bayangan dan stroke putih
+                const ax = 150, ay = 182, ar = 92;
                 ctx.save();
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = 'rgba(0,0,0,0.6)';
-                ctx.beginPath();
-                ctx.arc(fotoX + fotoSize/2, fotoY + fotoSize/2, fotoSize/2 + 4, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(fotoX + fotoSize/2, fotoY + fotoSize/2, fotoSize/2, 0, Math.PI*2);
-                ctx.lineWidth = 6;
-                ctx.strokeStyle = '#ffffff';
-                ctx.stroke();
-                ctx.clip();
-                ctx.shadowBlur = 0; // reset shadow agar tidak mengganggu gambar
-                ctx.drawImage(pp, fotoX, fotoY, fotoSize, fotoSize);
+                ctx.beginPath(); ctx.arc(ax, ay, ar, 0, Math.PI * 2); ctx.clip();
+                ctx.drawImage(pp, ax - ar, ay - ar, ar * 2, ar * 2);
                 ctx.restore();
+                ctx.lineWidth = 6; ctx.strokeStyle = ACCENT;
+                ctx.beginPath(); ctx.arc(ax, ay, ar + 3, 0, Math.PI * 2); ctx.stroke();
+                const dotA = Math.PI * 0.25;
+                const dx = ax + Math.cos(dotA) * (ar + 3), dy = ay + Math.sin(dotA) * (ar + 3);
+                ctx.fillStyle = ACCENT;
+                ctx.beginPath(); ctx.arc(dx, dy, 16, 0, Math.PI * 2); ctx.fill();
+                ctx.lineWidth = 4; ctx.strokeStyle = '#0a1526';
+                ctx.beginPath(); ctx.arc(dx, dy, 16, 0, Math.PI * 2); ctx.stroke();
 
-                // 6. Nama user di samping kanan foto
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = 'rgba(0,0,0,0.8)';
-                ctx.font = 'bold 70px "Poppins", "Segoe UI", "Roboto", sans-serif';
-                ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'left';
-                // --- PERBAIKAN DI SINI ---
-				// Ambil nama dari database global jika ada, jika tidak pakai getName, jika gagal baru nomor
-				let name = global.db.data.users[user]?.name || await this.getName(user);
-                if (name.includes('@')) name = name.split('@')[0];
-
-                if (name.length > 20) name = name.substring(0, 18) + '...';
-                ctx.fillText(name, fotoX + fotoSize + 30, fotoY + fotoSize/2 + 20);
-
-                // 7. Pesan aksi (dengan nama grup)
-                ctx.font = 'bold 40px "Poppins", "Segoe UI", "Roboto", sans-serif';
-                ctx.textAlign = 'center';
-                let messageLine = '';
-                if (action === 'add') {
-                    messageLine = `WELCOME TO GRUP “${groupMetadata.subject || 'GROUP'}”`;
-                } else if (action === 'remove') {
-                    messageLine = `GOODBYE FROM GRUP “${groupMetadata.subject || 'GROUP'}”`;
-                } else if (action === 'promote') {
-                    messageLine = `PROMOTED IN GRUP “${groupMetadata.subject || 'GROUP'}”`;
-                } else if (action === 'demote') {
-                    messageLine = `DEMOTED IN GRUP “${groupMetadata.subject || 'GROUP'}”`;
+                // 7. Icon grup (lingkaran kanan + ring aksen)
+                let gp = null;
+                try {
+                    const gppUrl = await this.profilePictureUrl(id, 'image').catch(_ => null);
+                    if (gppUrl) gp = await skia.loadImage(gppUrl);
+                } catch {}
+                const gx = 1050, gy = 118, gr = 68;
+                ctx.save();
+                ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.clip();
+                if (gp) {
+                    ctx.drawImage(gp, gx - gr, gy - gr, gr * 2, gr * 2);
+                } else {
+                    ctx.fillStyle = '#111c30';
+                    ctx.fillRect(gx - gr, gy - gr, gr * 2, gr * 2);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '900 64px "Poppins", "Segoe UI", "Roboto", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText((groupName[0] || 'G').toUpperCase(), gx, gy + 23);
                 }
-                ctx.fillText(messageLine, 600, 450);
+                ctx.restore();
+                ctx.lineWidth = 5; ctx.strokeStyle = ACCENT;
+                ctx.beginPath(); ctx.arc(gx, gy, gr + 3, 0, Math.PI * 2); ctx.stroke();
 
-                // 8. Footer "JOJO BOT WHATSAPP"
-                ctx.font = '30px "Poppins", "Segoe UI", "Roboto", sans-serif';
-                ctx.fillText('JOJO BOT WHATSAPP', 600, 550);
+                // 8. Panel bawah: nama user + pill badge nomor member
+                ctx.fillStyle = 'rgba(8, 14, 28, 0.55)';
+                rr(40, 262, W - 80, 128, 24); ctx.fill();
+                ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+                rr(40, 262, W - 80, 128, 24); ctx.stroke();
 
-                // Reset shadow
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 0;
+                let name = global.db.data.users[user]?.name || await this.getName(user);
+                if (name.includes('@')) name = name.split('@')[0];
+                if (name.length > 16) name = name.substring(0, 14) + '...';
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 66px "Poppins", "Segoe UI", "Roboto", sans-serif';
+                ctx.fillText(name, 70, 330);
+
+                const memberCount = groupMetadata.participants?.length || 0;
+                const badgeText = isJoin
+                    ? (memberCount > 0 ? `✦ ${ord(memberCount)} MEMBER` : '✦ NEW MEMBER')
+                    : '✦ SEE YOU';
+                ctx.font = 'bold 26px "Poppins", "Segoe UI", "Roboto", sans-serif';
+                const tw = ctx.measureText(badgeText).width;
+                const px = 70, py = 344, pw = tw + 48, ph = 40;
+                ctx.fillStyle = ACCENT;
+                rr(px, py, pw, ph, ph / 2); ctx.fill();
+                ctx.fillStyle = '#06121f';
+                ctx.fillText(badgeText, px + 24, py + 29);
+
+                // 9. Bar aksen bawah
+                ctx.fillStyle = ACCENT;
+                ctx.fillRect(0, H - 8, W, 8);
 
                 // Export ke Buffer
                 const buffer = await canvas.toBuffer('png');
