@@ -2,7 +2,7 @@
   "users": {
     "6288213292687@s.whatsapp.net": {
       "name": "+62 882-1329-2687",
-      "exp": 474096,
+      "exp": 474111,
       "money": 2000001004020,
       "hutang": 0,
       "hutangTime": 0,
@@ -20,6 +20,12 @@
       "registered": false,
       "banned": false,
       "autolevelup": false,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
       "rod": 100,
       "bait": "None",
       "bait_count": 0,
@@ -29,7 +35,7 @@
     },
     "6285183221210@s.whatsapp.net": {
       "name": "arasya",
-      "exp": 10349,
+      "exp": 11207,
       "money": 51960,
       "hutang": 0,
       "hutangTime": 0,
@@ -467,24 +473,30 @@
     },
     "6285123626369@s.whatsapp.net": {
       "name": "cheems",
-      "exp": 581469,
-      "money": 8705355,
+      "exp": 1333027,
+      "money": 8706375,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
-      "level": 42,
-      "limit": 43,
+      "level": 58,
+      "limit": 18,
       "age": 18,
       "regTime": 1771047351308,
       "afk": -1,
       "afkReason": "",
       "warn": 0,
-      "role": "Adventurer 4 ⚌⁴",
+      "role": "Adventurer 5 ⚌⁵",
       "premium": true,
-      "premiumTime": 1787701676625,
+      "premiumTime": 1791606535161,
       "registered": true,
       "banned": false,
-      "autolevelup": true,
+      "autolevelup": false,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
       "rod": 51,
       "bait": "🔮 Umpan Mistik",
       "bait_count": 49,
@@ -3424,8 +3436,8 @@
     },
     "6285198450291@s.whatsapp.net": {
       "name": "Artha510",
-      "exp": 15012,
-      "money": 2207,
+      "exp": 15116,
+      "money": 2267,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
@@ -3442,6 +3454,12 @@
       "registered": true,
       "banned": false,
       "autolevelup": false,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
       "rod": 83,
       "bait": "None",
       "bait_count": 0,
@@ -5592,7 +5610,7 @@
     },
     "6287721754924@s.whatsapp.net": {
       "name": "salman",
-      "exp": 197035,
+      "exp": 197037,
       "money": 9995757855,
       "hutang": 0,
       "hutangTime": 0,
@@ -5610,6 +5628,12 @@
       "registered": true,
       "banned": false,
       "autolevelup": false,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
       "rod": 88,
       "bait": "🦐 Udang",
       "bait_count": 14,
@@ -7119,8 +7143,8 @@
     },
     "6281348259756@s.whatsapp.net": {
       "name": "singky",
-      "exp": 413438,
-      "money": 21050155632,
+      "exp": 413488,
+      "money": 21050155672,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
@@ -7137,11 +7161,17 @@
       "registered": true,
       "banned": false,
       "autolevelup": false,
-      "rod": 92,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
+      "rod": 86,
       "bait": "🦐 Udang",
-      "bait_count": 22,
+      "bait_count": 20,
       "location": "Laut",
-      "total_tangkapan": 128,
+      "total_tangkapan": 130,
       "inventory": [
         {
           "name": "🐠 Ikan Marlin",
@@ -7158,8 +7188,14 @@
         {
           "name": "🐟 Ikan Tuna",
           "rarity": "common",
-          "count": 3,
-          "lastPrice": 3115
+          "count": 4,
+          "lastPrice": 4020
+        },
+        {
+          "name": "🐠 Lobster Laut",
+          "rarity": "uncommon",
+          "count": 1,
+          "lastPrice": 14412
         }
       ],
       "win": 6
@@ -69119,13 +69155,13 @@
     },
     "6285380153926@s.whatsapp.net": {
       "name": "Arsen",
-      "exp": 637,
+      "exp": 641,
       "money": 460,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
       "level": 1,
-      "limit": 7,
+      "limit": 6,
       "age": 16,
       "regTime": 1772987052271,
       "afk": -1,
@@ -69137,6 +69173,12 @@
       "registered": true,
       "banned": false,
       "autolevelup": false,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
       "rod": 100,
       "bait": "None",
       "bait_count": 0,
@@ -135921,8 +135963,8 @@
     },
     "6282373274003@s.whatsapp.net": {
       "name": "Faiz",
-      "exp": 410257,
-      "money": 817817941,
+      "exp": 410524,
+      "money": 817783641,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
@@ -135939,11 +135981,17 @@
       "registered": true,
       "banned": false,
       "autolevelup": false,
-      "rod": 33,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
+      "rod": 96,
       "bait": "🔮 Umpan Mistik",
-      "bait_count": 259,
+      "bait_count": 256,
       "location": "Laut",
-      "total_tangkapan": 41,
+      "total_tangkapan": 44,
       "inventory": [
         {
           "name": "🐠 Ikan Kakap",
@@ -136034,6 +136082,24 @@
           "rarity": "epic",
           "count": 1,
           "lastPrice": 62260
+        },
+        {
+          "name": "🐡 Pari Raksasa",
+          "rarity": "rare",
+          "count": 1,
+          "lastPrice": 24965
+        },
+        {
+          "name": "🐟 Ikan Tuna",
+          "rarity": "common",
+          "count": 1,
+          "lastPrice": 3052
+        },
+        {
+          "name": "🐠 Lobster Laut",
+          "rarity": "uncommon",
+          "count": 1,
+          "lastPrice": 28848
         }
       ],
       "win": 1
@@ -171005,8 +171071,8 @@
     },
     "6283199329104@s.whatsapp.net": {
       "name": "+86 7051314767696",
-      "exp": 196,
-      "money": 140,
+      "exp": 317,
+      "money": 220,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
@@ -171023,11 +171089,18 @@
       "registered": false,
       "banned": false,
       "autolevelup": false,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
       "rod": 100,
       "bait": "None",
       "bait_count": 0,
       "location": "Empang",
-      "total_tangkapan": 0
+      "total_tangkapan": 0,
+      "inventory": []
     },
     "6282260148945@s.whatsapp.net": {
       "name": "Ahmadd",
@@ -173840,19 +173913,19 @@
     },
     "6288214772441@s.whatsapp.net": {
       "name": "arasya",
-      "exp": 10052,
-      "money": 997305332,
+      "exp": 11088,
+      "money": 997305812,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
-      "level": 1,
+      "level": 8,
       "limit": 20,
       "age": 10,
       "regTime": 1780122033880,
       "afk": -1,
       "afkReason": "",
       "warn": 0,
-      "role": "Newbie ㋡",
+      "role": "Beginner 3 ⚊³",
       "premium": false,
       "premiumTime": 0,
       "registered": true,
@@ -173864,12 +173937,19 @@
       "jvaultUsername": "asyaku130",
       "jvaultWhatsapp": "6288214772441",
       "jvaultEmail": "asyaku130@gmail.com",
-      "rod": 97,
+      "rod": 96,
       "bait": "None",
       "bait_count": 0,
       "location": "Empang",
-      "total_tangkapan": 1,
-      "inventory": []
+      "total_tangkapan": 2,
+      "inventory": [
+        {
+          "name": "🦈 Ikan Lele Kecil",
+          "rarity": "rare",
+          "count": 1,
+          "lastPrice": 584
+        }
+      ]
     },
     "6281299559662@s.whatsapp.net": {
       "name": "zaa",
@@ -177172,6 +177252,70 @@
       "bait_count": 0,
       "location": "Empang",
       "total_tangkapan": 0
+    },
+    "6285296839141@s.whatsapp.net": {
+      "name": "+62 852-9683-9141",
+      "exp": 0,
+      "money": 0,
+      "hutang": 0,
+      "hutangTime": 0,
+      "lastpinjam": 0,
+      "level": 1,
+      "limit": 20,
+      "age": -1,
+      "regTime": -1,
+      "afk": -1,
+      "afkReason": "",
+      "warn": 0,
+      "role": "Newbie",
+      "premium": false,
+      "premiumTime": 0,
+      "registered": false,
+      "banned": false,
+      "autolevelup": false,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
+      "rod": 100,
+      "bait": "None",
+      "bait_count": 0,
+      "location": "Empang",
+      "total_tangkapan": 0
+    },
+    "62895802615750@s.whatsapp.net": {
+      "name": "i",
+      "exp": 1,
+      "money": 0,
+      "hutang": 0,
+      "hutangTime": 0,
+      "lastpinjam": 0,
+      "level": 1,
+      "limit": 20,
+      "age": -1,
+      "regTime": -1,
+      "afk": -1,
+      "afkReason": "",
+      "warn": 0,
+      "role": "Newbie ㋡",
+      "premium": false,
+      "premiumTime": 0,
+      "registered": false,
+      "banned": false,
+      "autolevelup": false,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
+      "rod": 100,
+      "bait": "None",
+      "bait_count": 0,
+      "location": "Empang",
+      "total_tangkapan": 0
     }
   },
   "chats": {
@@ -177501,7 +177645,7 @@
       "notifsholat": true,
       "kotaSholat": "1301",
       "namaKota": "KOTA JAKARTA",
-      "lastNotif": "04:37",
+      "lastNotif": "11:53",
       "notifberbuka": true,
       "antitagsw": true
     },
@@ -177685,7 +177829,7 @@
       "notifsholat": true,
       "kotaSholat": "1204",
       "namaKota": "KAB. BOGOR",
-      "lastNotif": "04:37",
+      "lastNotif": "11:53",
       "notifberbuka": true
     },
     "status@broadcast": {
@@ -201638,28 +201782,28 @@
   },
   "stats": {
     "main-menu.js": {
-      "total": 3391,
-      "success": 3391,
-      "last": 1788995402261,
-      "lastSuccess": 1788995402261
+      "total": 3416,
+      "success": 3416,
+      "last": 1789015138590,
+      "lastSuccess": 1789015138590
     },
     "xp-profile.js": {
-      "total": 155,
-      "success": 155,
-      "last": 1780436138261,
-      "lastSuccess": 1780436138261
+      "total": 157,
+      "success": 157,
+      "last": 1789014015318,
+      "lastSuccess": 1789014015318
     },
     "ai-editimg.js": {
-      "total": 59,
-      "success": 59,
-      "last": 1779192271787,
-      "lastSuccess": 1779192271787
+      "total": 69,
+      "success": 69,
+      "last": 1789015981424,
+      "lastSuccess": 1789015981424
     },
     "play.js": {
-      "total": 213,
-      "success": 210,
-      "last": 1780435660543,
-      "lastSuccess": 1780435660543
+      "total": 214,
+      "success": 211,
+      "last": 1789015028197,
+      "lastSuccess": 1789015028197
     },
     "xp-register.js": {
       "total": 628,
@@ -201668,10 +201812,10 @@
       "lastSuccess": 1780435252514
     },
     "tools-toimg.js": {
-      "total": 26,
-      "success": 26,
-      "last": 1779972740230,
-      "lastSuccess": 1779972740230
+      "total": 27,
+      "success": 27,
+      "last": 1789014957835,
+      "lastSuccess": 1789014957835
     },
     "store-addlist.js": {
       "total": 34,
@@ -201704,9 +201848,9 @@
       "lastSuccess": 1780455014571
     },
     "store-list.js": {
-      "total": 807,
+      "total": 808,
       "success": 623,
-      "last": 1780394426471,
+      "last": 1789015132519,
       "lastSuccess": 1779200650063
     },
     "ai-cabo.js": {
@@ -201734,16 +201878,16 @@
       "lastSuccess": 1780115716881
     },
     "info-listprem.js": {
-      "total": 18,
-      "success": 18,
-      "last": 1780455307719,
-      "lastSuccess": 1780455307719
+      "total": 19,
+      "success": 19,
+      "last": 1789011859288,
+      "lastSuccess": 1789011859288
     },
     "owner-premium.js": {
-      "total": 25,
-      "success": 18,
-      "last": 1780395400543,
-      "lastSuccess": 1780395400543
+      "total": 26,
+      "success": 19,
+      "last": 1789014536875,
+      "lastSuccess": 1789014536875
     },
     "limit.js": {
       "total": 169,
@@ -201770,10 +201914,10 @@
       "lastSuccess": 1779970363077
     },
     "tes.js": {
-      "total": 281,
-      "success": 281,
-      "last": 1780401382656,
-      "lastSuccess": 1780401382656
+      "total": 282,
+      "success": 282,
+      "last": 1789015832308,
+      "lastSuccess": 1789015832308
     },
     "maker-iqc.js": {
       "total": 293,
@@ -201812,10 +201956,10 @@
       "lastSuccess": 1770956670494
     },
     "sticker-stickers.js": {
-      "total": 979,
-      "success": 977,
-      "last": 1780414007242,
-      "lastSuccess": 1780414007242
+      "total": 980,
+      "success": 978,
+      "last": 1789015574205,
+      "lastSuccess": 1789015574205
     },
     "game-slot.js": {
       "total": 1912,
@@ -201848,10 +201992,10 @@
       "lastSuccess": 1772158504135
     },
     "game-mancing.js": {
-      "total": 10090,
-      "success": 9719,
-      "last": 1788995458931,
-      "lastSuccess": 1788995458931
+      "total": 10104,
+      "success": 9733,
+      "last": 1789014167700,
+      "lastSuccess": 1789014167700
     },
     "game-mancing-fish_stats.js": {
       "total": 39,
@@ -201878,10 +202022,10 @@
       "lastSuccess": 1780435862608
     },
     "game-math.js": {
-      "total": 713,
-      "success": 713,
-      "last": 1780385677838,
-      "lastSuccess": 1780385677838
+      "total": 737,
+      "success": 737,
+      "last": 1789014238394,
+      "lastSuccess": 1789014238394
     },
     "game-tebakgambar.js": {
       "total": 1024,
@@ -201908,10 +202052,10 @@
       "lastSuccess": 1780435026237
     },
     "main-anonymous.js": {
-      "total": 172,
-      "success": 155,
-      "last": 1780381867158,
-      "lastSuccess": 1780381867158
+      "total": 174,
+      "success": 157,
+      "last": 1789009358002,
+      "lastSuccess": 1789009358002
     },
     "fun-cekcantik.js": {
       "total": 613,
@@ -201920,10 +202064,10 @@
       "lastSuccess": 1780139803344
     },
     "fun-gantengcek.js": {
-      "total": 774,
-      "success": 774,
-      "last": 1780379500636,
-      "lastSuccess": 1780379500636
+      "total": 776,
+      "success": 776,
+      "last": 1789013547875,
+      "lastSuccess": 1789013547875
     },
     "maker-bajingan.js": {
       "total": 104,
@@ -201938,10 +202082,10 @@
       "lastSuccess": 1780143395458
     },
     "tools-tourl.js": {
-      "total": 4,
-      "success": 4,
-      "last": 1780028491031,
-      "lastSuccess": 1780028491031
+      "total": 7,
+      "success": 7,
+      "last": 1789014933726,
+      "lastSuccess": 1789014933726
     },
     "group-hidetag.js": {
       "total": 169,
@@ -201986,10 +202130,10 @@
       "lastSuccess": 1773112183191
     },
     "main-enable.js": {
-      "total": 258,
-      "success": 122,
-      "last": 1780384352142,
-      "lastSuccess": 1780384352142
+      "total": 260,
+      "success": 124,
+      "last": 1789012518276,
+      "lastSuccess": 1789012518276
     },
     "main-notifsholat.js": {
       "total": 114,
@@ -202070,10 +202214,10 @@
       "lastSuccess": 1780382584080
     },
     "info-speed.js": {
-      "total": 10,
-      "success": 10,
-      "last": 1780454832117,
-      "lastSuccess": 1780454832117
+      "total": 11,
+      "success": 11,
+      "last": 1789009370964,
+      "lastSuccess": 1789009370964
     },
     "__canvas.js": {
       "total": 6,
@@ -202250,10 +202394,10 @@
       "lastSuccess": 1780117243723
     },
     "xp-levelup.js": {
-      "total": 618,
-      "success": 618,
-      "last": 1780434652703,
-      "lastSuccess": 1780434652703
+      "total": 622,
+      "success": 622,
+      "last": 1789014023215,
+      "lastSuccess": 1789014023215
     },
     "game-bom.js": {
       "total": 51,
@@ -202412,10 +202556,10 @@
       "lastSuccess": 1779926808998
     },
     "search-pinterest.js": {
-      "total": 127,
-      "success": 127,
-      "last": 1780115070605,
-      "lastSuccess": 1780115070605
+      "total": 128,
+      "success": 128,
+      "last": 1789013460860,
+      "lastSuccess": 1789013460860
     },
     "tools-removebg.js": {
       "total": 8,
@@ -202958,10 +203102,10 @@
       "lastSuccess": 1779970981982
     },
     "game-warewolf.js": {
-      "total": 1452,
-      "success": 1452,
-      "last": 1780455329302,
-      "lastSuccess": 1780455329302
+      "total": 1461,
+      "success": 1461,
+      "last": 1789015292876,
+      "lastSuccess": 1789015292876
     },
     "fun-cekjodoh.js": {
       "total": 41,
@@ -202976,10 +203120,16 @@
       "lastSuccess": 1788839518935
     },
     "xp-login.js": {
-      "total": 10,
-      "success": 10,
-      "last": 1788999263869,
-      "lastSuccess": 1788999263869
+      "total": 12,
+      "success": 12,
+      "last": 1789015171528,
+      "lastSuccess": 1789015171528
+    },
+    "tools-togif.js": {
+      "total": 2,
+      "success": 2,
+      "last": 1789015136796,
+      "lastSuccess": 1789015136796
     }
   },
   "msgs": {},

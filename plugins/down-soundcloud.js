@@ -95,7 +95,7 @@ handler.before = async (m, { conn }) => {
 }
 
 handler.help = ["soundcloud <query>"]
-handler.tags = ["download"]
+handler.tags = ["downloader"]
 handler.command = /^soundcloud$/i
 handler.limit = true
 

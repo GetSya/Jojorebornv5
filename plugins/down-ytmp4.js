@@ -43,7 +43,7 @@ let handler = async (m, { conn, args, text }) => {
 }
 
 handler.help = ['ytmp4 <url>']
-handler.tags = ['download']
+handler.tags = ['downloader']
 handler.command = /^ytv|ytmp4$/i
 handler.limit = true
 handler.register = true

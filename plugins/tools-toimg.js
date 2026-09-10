@@ -1,10 +1,4 @@
-import { writeFileSync, unlinkSync, existsSync, mkdirSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
-import sharp from 'sharp' // untuk konversi WebP → PNG/JPG
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+import sharp from 'sharp' // untuk konversi WebP → PNG/JPG (in-memory, tanpa file tmp)
 
 let handler = async (m, { conn, usedPrefix, command }) => {
     try {
@@ -22,34 +16,36 @@ ${usedPrefix + command}`
             )
         }
 
-        // pastikan folder tmp ada
-        const tmpDir = join(__dirname, '../tmp')
-        if (!existsSync(tmpDir)) mkdirSync(tmpDir)
-
-        const inputPath = join(tmpDir, `${Date.now()}_sticker.webp`)
-        const outputPath = join(tmpDir, `${Date.now()}_toimg.png`)
-
         const buffer = await q.download()
-        writeFileSync(inputPath, buffer)
+        if (!buffer?.length) return m.reply('❌ Gagal mengunduh sticker. Coba kirim / reply ulang stickernya.')
 
-        // konversi WebP → PNG
-        await sharp(inputPath)
-            .png()
-            .toFile(outputPath)
+        // Deteksi sticker animasi (penyebab umum "Gagal mengubah" kemarin)
+        let animated = false
+        try {
+            const meta = await sharp(buffer).metadata()
+            animated = (meta?.pages || 1) > 1
+        } catch {}
 
-        const imgBuffer = Buffer.from(await sharp(outputPath).toBuffer())
+        // Konversi in-memory (tanpa tulis file tmp -> tidak ada race / file nyangkut).
+        // Sticker animasi diambil frame pertamanya.
+        let imgBuffer
+        try {
+            imgBuffer = await sharp(buffer, { animated: false }).png().toBuffer()
+        } catch (e) {
+            throw 'Sticker ini tidak bisa dibaca (format tidak didukung).'
+        }
+        if (!imgBuffer?.length) throw 'Hasil konversi kosong, coba sticker lain.'
 
         await conn.sendMessage(m.chat, {
             image: imgBuffer,
-            caption: '✨ Sticker berhasil dikonversi menjadi gambar'
+            caption: animated
+                ? '✨ Sticker animasi dikonversi (frame pertama).\nMau versi geraknya? Pakai *.togif*'
+                : '✨ Sticker berhasil dikonversi menjadi gambar'
         }, { quoted: m })
 
-        unlinkSync(inputPath)
-        unlinkSync(outputPath)
-
     } catch (err) {
-        console.error(err)
-        return m.reply('❌ Gagal mengubah sticker menjadi gambar.')
+        console.error('[toimg]', err)
+        return m.reply(typeof err === 'string' ? `❌ ${err}` : '❌ Gagal mengubah sticker menjadi gambar.')
     }
 }
 

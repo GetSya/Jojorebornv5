@@ -270,6 +270,50 @@ function initUser(user) {
   return user
 }
 
+// ── Helper jual ikan: cari index ikan by nomor (1-based) atau nama ──
+function findFishIndex(inventory, query) {
+  if (!query) return -1
+  const q = String(query).trim().toLowerCase()
+  if (!q) return -1
+  // Nomor urut: "1", "2", ...
+  if (/^\d+$/.test(q)) {
+    const idx = parseInt(q, 10) - 1
+    if (idx >= 0 && idx < inventory.length) return idx
+    return -1
+  }
+  // Nama: cocok persis dulu, lalu includes
+  let idx = inventory.findIndex(i => (i.name || '').toLowerCase() === q)
+  if (idx !== -1) return idx
+  // Abaikan emoji/non-huruf saat pencocokan parsial, mis. "ikan mas"
+  const norm = s => (s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
+  const nq = norm(q)
+  idx = inventory.findIndex(i => norm(i.name).includes(nq))
+  if (idx !== -1) return idx
+  idx = inventory.findIndex(i => (i.name || '').toLowerCase().includes(q))
+  return idx
+}
+
+// ── Helper jual ikan: pecah sisa teks jadi { fishQuery, qty } ──
+// Contoh: "" -> { mode:'list' }, "all" -> { mode:'all' },
+// "1" -> { fishQuery:'1' }, "1 5" -> { fishQuery:'1', qty:5 },
+// "ikan mas 3" -> { fishQuery:'ikan mas', qty:3 }
+function parseFishAndQty(restText) {
+  const t = (restText || '').trim()
+  if (!t) return { mode: 'list' }
+  if (/^all$/i.test(t)) return { mode: 'all' }
+  const mQty = t.match(/^(.+?)\s+(\d+|all)$/i)
+  if (mQty) {
+    return { mode: 'pick', fishQuery: mQty[1].trim(), qtyRaw: mQty[2].toLowerCase() }
+  }
+  return { mode: 'pick', fishQuery: t, qtyRaw: null }
+}
+
+function fishListText(inventory) {
+  return inventory.map((item, i) =>
+    `${i + 1}. ${RARITY_COLORS[item.rarity] || '⬜'} *${item.name}* x${item.count}\n   💰 ~Rp ${formatMoney(item.lastPrice || 0)}/ekor`
+  ).join('\n')
+}
+
 // ═══════════════════════════════════════════════════
 //              BUTTON HELPERS (native + fallback)
 //  Tap tombol/list kembali sebagai m.text berisi id
@@ -655,75 +699,195 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
   }
 
   // ───────────────────────────────────────────────
-  //  /jualikan — Jual ikan ke bot atau user
+  //  /jualikan — Jual ikan ke bot atau user (PILIH IKAN via list buttons)
+  //  Cara pakai:
+  //   .jualikan bot              -> list pilih ikan (jual ke bot)
+  //   .jualikan bot all          -> jual SEMUA ke bot
+  //   .jualikan bot <no/nama> [jumlah|all] -> jual pilihan ke bot
+  //   .jualikan @user            -> list pilih ikan (tawar ke teman)
+  //   .jualikan @user <no/nama> [jumlah|all] -> tawar pilihan ke teman
   // ───────────────────────────────────────────────
   if (/^(jualikan|sellfish|jual)$/i.test(command)) {
     if (!user.inventory || user.inventory.length === 0) {
       return m.reply(`❌ *Inventarismu kosong!* Tidak ada ikan untuk dijual.\n🎣 Coba mancing dulu: \`${usedPrefix}mancing\``)
     }
 
-    const target = text?.trim().toLowerCase()
+    const rawText = (text || '').trim()
+    const firstToken = (rawText.split(/\s+/)[0] || '').toLowerCase()
 
-    // ── Jual ke bot ──
-    if (!target || target === 'bot' || target === 'npc') {
-      const totalItems = user.inventory.reduce((s, i) => s + i.count, 0)
-      let totalEarned = 0
-      let salesDetail = []
+    // ── Tentukan target: bot atau user lain ──
+    const mentioned = m.mentionedJid?.[0]
+    const tagMatch = rawText.match(/@(\d+)/)
+    let buyerJid = mentioned || (tagMatch ? tagMatch[1] + '@s.whatsapp.net' : null)
+    if (!buyerJid && m.quoted?.sender && firstToken !== 'bot' && firstToken !== 'npc') {
+      buyerJid = m.quoted.sender
+    }
+    const isBotTarget = !buyerJid && (firstToken === 'bot' || firstToken === 'npc' || firstToken === '' ||
+      (!buyerJid && (() => {
+        // Tanpa target eksplisit tapi teks cocok ke ikan -> anggap alur bot
+        // (mis. ".jualikan 1" = jual ikan no.1 ke bot)
+        const probe = parseFishAndQty(rawText)
+        if (probe.mode === 'all') return true
+        if (probe.mode === 'pick' && findFishIndex(user.inventory, probe.fishQuery) !== -1) return true
+        return false
+      })()))
 
-      for (const item of user.inventory) {
-        const taxRate = 0.05 + Math.random() * 0.04 // 5-9% pajak
-        const gross = item.lastPrice * item.count
-        const tax = Math.floor(gross * taxRate)
-        const net = gross - tax
-        totalEarned += net
-        salesDetail.push(
-          `${RARITY_COLORS[item.rarity] || '⬜'} *${item.name}* x${item.count}\n` +
-          `   💰 Rp ${formatMoney(gross)} — Pajak ${(taxRate * 100).toFixed(0)}% (Rp ${formatMoney(tax)})\n` +
-          `   ✅ Terima: Rp ${formatMoney(net)}`
-        )
+    // Sisa teks setelah membuang kata target (bot / @tag / nomor buyer)
+    const stripTarget = (t) => {
+      let s = ' ' + (t || '') + ' '
+      s = s.replace(/\s+(bot|npc)\s+/i, ' ')
+      s = s.replace(/@\d+\s*/g, ' ')
+      if (buyerJid) {
+        const num = buyerJid.split('@')[0]
+        s = s.replace(new RegExp(`\\s+${num}\\s*`, 'g'), ' ')
+      }
+      return s.trim()
+    }
+    const restText = isBotTarget ? rawText.replace(/^\s*(bot|npc)\s*/i, '').trim() : stripTarget(rawText)
+
+    // ═══════════════════════════════════════════
+    //  A. JUAL KE BOT (pilih ikan via list)
+    // ═══════════════════════════════════════════
+    if (isBotTarget) {
+      const parsed = parseFishAndQty(restText)
+
+      // A1. Belum pilih ikan -> tampilkan LIST pilihan ikan
+      if (parsed.mode === 'list') {
+        const rows = user.inventory.map((item, i) => ({
+          title: `${i + 1}. ${item.name} x${item.count}`,
+          description: `Rp ${formatMoney((item.lastPrice || 0) * item.count)} total | ~Rp ${formatMoney(item.lastPrice || 0)}/ekor`,
+          id: `${usedPrefix}jualikan bot ${i + 1}`
+        }))
+        rows.push({
+          title: '💰 Jual SEMUA ikan',
+          description: `Total ±Rp ${formatMoney(user.inventory.reduce((s, i) => s + (i.lastPrice || 0) * i.count, 0))}`,
+          id: `${usedPrefix}jualikan bot all`
+        })
+        return sendFishButtons(conn, m.chat,
+          `🏪 *JUAL IKAN KE BOT*\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `${fishListText(user.inventory)}\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `👆 *Pilih ikan* lewat list di bawah ⬇️\n` +
+          `Atau ketik manual:\n` +
+          `➤ \`${usedPrefix}jualikan bot <nomor>\` — jual 1 jenis\n` +
+          `➤ \`${usedPrefix}jualikan bot <nomor> <jumlah>\` — jual sebagian\n` +
+          `➤ \`${usedPrefix}jualikan bot all\` — jual semua`,
+          [{ type: 'list', title: '🏪 Pilih Ikan', sections: toSections10(rows, '🐟 Ikan Dijual') }],
+          { quoted: m })
       }
 
-      user.money = (user.money || 0) + totalEarned
-      user.inventory = []
+      // A2. Jual SEMUA (perilaku lama, kini eksplisit via "all")
+      if (parsed.mode === 'all') {
+        const totalItems = user.inventory.reduce((s, i) => s + i.count, 0)
+        let totalEarned = 0
+        let salesDetail = []
+
+        for (const item of user.inventory) {
+          const taxRate = 0.05 + Math.random() * 0.04 // 5-9% pajak
+          const gross = item.lastPrice * item.count
+          const tax = Math.floor(gross * taxRate)
+          const net = gross - tax
+          totalEarned += net
+          salesDetail.push(
+            `${RARITY_COLORS[item.rarity] || '⬜'} *${item.name}* x${item.count}\n` +
+            `   💰 Rp ${formatMoney(gross)} — Pajak ${(taxRate * 100).toFixed(0)}% (Rp ${formatMoney(tax)})\n` +
+            `   ✅ Terima: Rp ${formatMoney(net)}`
+          )
+        }
+
+        user.money = (user.money || 0) + totalEarned
+        user.inventory = []
+        global.db.data.users[sender] = user
+
+        return sendFishButtons(conn, m.chat,
+          `🏪 *JUAL KE BOT BERHASIL!*\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          salesDetail.join('\n\n') +
+          `\n━━━━━━━━━━━━━━━━━━━━\n` +
+          `📦 Total Terjual: *${totalItems} ekor*\n` +
+          `💵 Total Diterima: *Rp ${formatMoney(totalEarned)}*\n` +
+          `💳 Uang Kamu Kini: *Rp ${formatMoney(user.money)}*`,
+          [
+            { title: '🎣 Mancing', id: `${usedPrefix}mancing` },
+            { title: '🎒 Inventory', id: `${usedPrefix}inventory` },
+          ], { quoted: m })
+      }
+
+      // A3. Jual SATU JENIS pilihan (dengan jumlah opsional)
+      const idx = findFishIndex(user.inventory, parsed.fishQuery)
+      if (idx === -1) {
+        return m.reply(
+          `❌ Ikan *"${parsed.fishQuery}"* tidak ada di inventory!\n\n` +
+          `${fishListText(user.inventory)}\n\n` +
+          `Pakai nomor: \`${usedPrefix}jualikan bot 1\`\n` +
+          `Atau: \`${usedPrefix}jualikan bot all\``
+        )
+      }
+      const item = user.inventory[idx]
+
+      // Belum tentukan jumlah & stok > 1 -> tampilkan LIST pilihan jumlah
+      let qty = item.count
+      if (parsed.qtyRaw === null && item.count > 1) {
+        const opt = []
+        opt.push({ title: `1 ekor — Rp ${formatMoney(item.lastPrice || 0)}`, description: item.name, id: `${usedPrefix}jualikan bot ${idx + 1} 1` })
+        if (item.count > 5) opt.push({ title: `5 ekor`, description: item.name, id: `${usedPrefix}jualikan bot ${idx + 1} 5` })
+        if (item.count > 10) opt.push({ title: `10 ekor`, description: item.name, id: `${usedPrefix}jualikan bot ${idx + 1} 10` })
+        if (item.count > 2) opt.push({ title: `Setengah (${Math.floor(item.count / 2)} ekor)`, description: item.name, id: `${usedPrefix}jualikan bot ${idx + 1} ${Math.floor(item.count / 2)}` })
+        opt.push({ title: `Semua (${item.count} ekor)`, description: `Total ±Rp ${formatMoney((item.lastPrice || 0) * item.count)}`, id: `${usedPrefix}jualikan bot ${idx + 1} all` })
+        return sendFishButtons(conn, m.chat,
+          `${RARITY_COLORS[item.rarity] || '⬜'} *${item.name}* x${item.count}\n` +
+          `💰 ~Rp ${formatMoney(item.lastPrice || 0)}/ekor\n\n` +
+          `👆 *Mau jual berapa ekor?* Pilih di bawah ⬇️\n` +
+          `Atau ketik: \`${usedPrefix}jualikan bot ${idx + 1} <jumlah>\``,
+          [{ type: 'list', title: '🔢 Pilih Jumlah', sections: toSections10(opt, '🔢 Jumlah') }],
+          { quoted: m })
+      }
+      if (parsed.qtyRaw !== null && parsed.qtyRaw !== 'all') {
+        qty = parseInt(parsed.qtyRaw, 10)
+        if (!Number.isFinite(qty) || qty < 1) return m.reply('❌ Jumlah harus angka ≥ 1 atau *all*.')
+        if (qty > item.count) return m.reply(`❌ Stok *${item.name}* cuma *${item.count} ekor*!`)
+      }
+
+      const taxRate = 0.05 + Math.random() * 0.04
+      const gross = (item.lastPrice || 0) * qty
+      const tax = Math.floor(gross * taxRate)
+      const net = gross - tax
+      user.money = (user.money || 0) + net
+      item.count -= qty
+      if (item.count <= 0) user.inventory.splice(idx, 1)
       global.db.data.users[sender] = user
 
       return sendFishButtons(conn, m.chat,
         `🏪 *JUAL KE BOT BERHASIL!*\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        salesDetail.join('\n\n') +
-        `\n━━━━━━━━━━━━━━━━━━━━\n` +
-        `📦 Total Terjual: *${totalItems} ekor*\n` +
-        `💵 Total Diterima: *Rp ${formatMoney(totalEarned)}*\n` +
-        `💳 Uang Kamu Kini: *Rp ${formatMoney(user.money)}*`,
+        `${RARITY_COLORS[item.rarity] || '⬜'} *${item.name}* x${qty}\n` +
+        `💰 Kotor: Rp ${formatMoney(gross)}\n` +
+        `🧾 Pajak ${(taxRate * 100).toFixed(0)}%: Rp ${formatMoney(tax)}\n` +
+        `✅ Terima: *Rp ${formatMoney(net)}*\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `💳 Uang Kini: *Rp ${formatMoney(user.money)}*\n` +
+        `🎒 Sisa *${item.name}*: *${Math.max(0, (user.inventory[idx]?.count ?? 0))} ekor*`,
         [
+          { title: '🏪 Jual Lagi', id: `${usedPrefix}jualikan bot` },
           { title: '🎣 Mancing', id: `${usedPrefix}mancing` },
           { title: '🎒 Inventory', id: `${usedPrefix}inventory` },
         ], { quoted: m })
     }
 
-    // ── Jual ke user lain ──
-    let buyerJid = null
-
-    // Dari mention
-    const mentioned = m.mentionedJid?.[0]
-    if (mentioned) buyerJid = mentioned
-
-    // Dari reply
-    if (!buyerJid && m.quoted?.sender) buyerJid = m.quoted.sender
-
-    // Dari @tag di teks
-    if (!buyerJid) {
-      const tagMatch = text.match(/@(\d+)/)
-      if (tagMatch) buyerJid = tagMatch[1] + '@s.whatsapp.net'
-    }
-
+    // ═══════════════════════════════════════════
+    //  B. JUAL KE TEMAN (pilih ikan via list)
+    // ═══════════════════════════════════════════
     if (!buyerJid) {
       return m.reply(
         `❌ *Sebutkan target pembeli!*\n\n` +
         `Cara pakai:\n` +
-        `➤ \`${usedPrefix}jualikan @user\` — mention user\n` +
+        `➤ \`${usedPrefix}jualikan @user\` — pilih ikan via list\n` +
+        `➤ \`${usedPrefix}jualikan @user <nomor>\` — tawar 1 jenis\n` +
+        `➤ \`${usedPrefix}jualikan @user <nomor> <jumlah>\` — tawar sebagian\n` +
+        `➤ \`${usedPrefix}jualikan @user all\` — tawar semua\n` +
         `➤ Reply pesan user + \`${usedPrefix}jualikan\`\n` +
-        `➤ \`${usedPrefix}jualikan bot\` — jual ke bot`
+        `➤ \`${usedPrefix}jualikan bot\` — jual ke bot (pilih via list)`
       )
     }
 
@@ -731,43 +895,110 @@ let handler = async (m, { conn, usedPrefix, command, text, args }) => {
 
     const buyer = global.db.data.users[buyerJid]
     if (!buyer) return m.reply('❌ User tersebut tidak terdaftar di database!')
-
-    // Hitung total harga semua ikan
-    const totalPrice = user.inventory.reduce((s, i) => s + (i.lastPrice || 0) * i.count, 0)
-    const buyerName = buyer.name || buyerJid.split('@')[0]
+    const buyerNum = buyerJid.split('@')[0]
+    const parsed = parseFishAndQty(restText)
+    const buyerName = buyer.name || buyerNum
     const sellerName = user.name || sender.split('@')[0]
 
-    // Buat session transaksi
-    sellSessions.set(buyerJid, {
-      sellerId: sender,
-      sellerName,
-      buyerName,
-      inventory: JSON.parse(JSON.stringify(user.inventory)),
-      totalPrice,
-      createdAt: Date.now(),
-      timeout: setTimeout(() => {
-        sellSessions.delete(buyerJid)
-      }, 60_000) // expire 1 menit
-    })
+    const makeOffer = (items, totalPrice) => {
+      const old = sellSessions.get(buyerJid)
+      if (old?.timeout) clearTimeout(old.timeout)
+      sellSessions.set(buyerJid, {
+        sellerId: sender,
+        sellerName,
+        buyerName,
+        inventory: JSON.parse(JSON.stringify(items)),
+        totalPrice,
+        createdAt: Date.now(),
+        timeout: setTimeout(() => {
+          sellSessions.delete(buyerJid)
+        }, 60_000) // expire 1 menit
+      })
+      const fishList = items.map(i =>
+        `${RARITY_COLORS[i.rarity] || '⬜'} ${i.name} x${i.count} — Rp ${formatMoney((i.lastPrice || 0) * i.count)}`
+      ).join('\n')
+      return sendFishButtons(conn, m.chat,
+        `🤝 *PENAWARAN IKAN*\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `👨 Penjual: *@${sender.split('@')[0]}*\n` +
+        `👤 Pembeli: *@${buyerNum}*\n\n` +
+        `📦 Daftar Ikan:\n${fishList}\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `💰 Total Harga: *Rp ${formatMoney(totalPrice)}*\n\n` +
+        `✅ *@${buyerNum}* ketuk tombol di bawah\n` +
+        `⏰ Kadaluarsa dalam 60 detik`,
+        [
+          { title: '✅ Terima', id: 'accept' },
+          { title: '❌ Tolak', id: 'cancel' },
+        ], { quoted: m, mentions: [sender, buyerJid] })
+    }
 
-    const fishList = user.inventory.map(i =>
-      `${RARITY_COLORS[i.rarity] || '⬜'} ${i.name} x${i.count} — Rp ${formatMoney((i.lastPrice || 0) * i.count)}`
-    ).join('\n')
+    // B1. Belum pilih ikan -> tampilkan LIST pilihan ikan untuk buyer ini
+    if (parsed.mode === 'list') {
+      const rows = user.inventory.map((it, i) => ({
+        title: `${i + 1}. ${it.name} x${it.count}`,
+        description: `Rp ${formatMoney((it.lastPrice || 0) * it.count)} total`,
+        id: `${usedPrefix}jualikan @${buyerNum} ${i + 1}`
+      }))
+      rows.push({
+        title: '💰 Tawarkan SEMUA ikan',
+        description: `Total ±Rp ${formatMoney(user.inventory.reduce((s, i) => s + (i.lastPrice || 0) * i.count, 0))} ke @${buyerNum}`,
+        id: `${usedPrefix}jualikan @${buyerNum} all`
+      })
+      return sendFishButtons(conn, m.chat,
+        `🤝 *JUAL KE TEMAN*\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `👤 Pembeli: *@${buyerNum}*\n\n` +
+        `${fishListText(user.inventory)}\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `👆 *Pilih ikan* yang mau ditawarkan ⬇️\n` +
+        `Atau ketik: \`${usedPrefix}jualikan @${buyerNum} <nomor> [jumlah]\``,
+        [{ type: 'list', title: '🐟 Pilih Ikan', sections: toSections10(rows, '🐟 Ikan Ditawarkan') }],
+        { quoted: m, mentions: [buyerJid] })
+    }
 
-    return sendFishButtons(conn, m.chat,
-      `🤝 *PENAWARAN IKAN*\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `👨 Penjual: *@${sender.split('@')[0]}*\n` +
-      `👤 Pembeli: *@${buyerJid.split('@')[0]}*\n\n` +
-      `📦 Daftar Ikan:\n${fishList}\n\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `💰 Total Harga: *Rp ${formatMoney(totalPrice)}*\n\n` +
-      `✅ *@${buyerJid.split('@')[0]}* ketuk tombol di bawah\n` +
-      `⏰ Kadaluarsa dalam 60 detik`,
-      [
-        { title: '✅ Terima', id: 'accept' },
-        { title: '❌ Tolak', id: 'cancel' },
-      ], { quoted: m, mentions: [sender, buyerJid] })
+    // B2. Tawarkan SEMUA
+    if (parsed.mode === 'all') {
+      const items = JSON.parse(JSON.stringify(user.inventory))
+      const totalPrice = items.reduce((s, i) => s + (i.lastPrice || 0) * i.count, 0)
+      return makeOffer(items, totalPrice)
+    }
+
+    // B3. Tawar SATU JENIS pilihan
+    const idx = findFishIndex(user.inventory, parsed.fishQuery)
+    if (idx === -1) {
+      return m.reply(
+        `❌ Ikan *"${parsed.fishQuery}"* tidak ada di inventory!\n\n` +
+        `${fishListText(user.inventory)}\n\n` +
+        `Pakai nomor: \`${usedPrefix}jualikan @${buyerNum} 1\``
+      )
+    }
+    const item = user.inventory[idx]
+
+    // Belum tentukan jumlah & stok > 1 -> LIST pilihan jumlah
+    if (parsed.qtyRaw === null && item.count > 1) {
+      const opt = []
+      opt.push({ title: `1 ekor`, description: `${item.name} — Rp ${formatMoney(item.lastPrice || 0)}`, id: `${usedPrefix}jualikan @${buyerNum} ${idx + 1} 1` })
+      if (item.count > 5) opt.push({ title: `5 ekor`, description: item.name, id: `${usedPrefix}jualikan @${buyerNum} ${idx + 1} 5` })
+      if (item.count > 10) opt.push({ title: `10 ekor`, description: item.name, id: `${usedPrefix}jualikan @${buyerNum} ${idx + 1} 10` })
+      if (item.count > 2) opt.push({ title: `Setengah (${Math.floor(item.count / 2)} ekor)`, description: item.name, id: `${usedPrefix}jualikan @${buyerNum} ${idx + 1} ${Math.floor(item.count / 2)}` })
+      opt.push({ title: `Semua (${item.count} ekor)`, description: `Total Rp ${formatMoney((item.lastPrice || 0) * item.count)}`, id: `${usedPrefix}jualikan @${buyerNum} ${idx + 1} all` })
+      return sendFishButtons(conn, m.chat,
+        `🤝 *JUAL KE @${buyerNum}*\n` +
+        `${RARITY_COLORS[item.rarity] || '⬜'} *${item.name}* x${item.count}\n\n` +
+        `👆 *Mau tawarkan berapa ekor?* Pilih ⬇️`,
+        [{ type: 'list', title: '🔢 Pilih Jumlah', sections: toSections10(opt, '🔢 Jumlah') }],
+        { quoted: m, mentions: [buyerJid] })
+    }
+    let qty = item.count
+    if (parsed.qtyRaw !== null && parsed.qtyRaw !== 'all') {
+      qty = parseInt(parsed.qtyRaw, 10)
+      if (!Number.isFinite(qty) || qty < 1) return m.reply('❌ Jumlah harus angka ≥ 1 atau *all*.')
+      if (qty > item.count) return m.reply(`❌ Stok *${item.name}* cuma *${item.count} ekor*!`)
+    }
+    const offered = [{ ...item, count: qty }]
+    const totalPrice = (item.lastPrice || 0) * qty
+    return makeOffer(offered, totalPrice)
   }
 
   // ───────────────────────────────────────────────
@@ -899,6 +1130,25 @@ handler.before = async (m, { conn }) => {
 
     clearTimeout(session.timeout)
 
+    // Validasi stok penjual masih cukup (bisa berkurang jika dijual ke bot dulu)
+    if (!seller.inventory) seller.inventory = []
+    const kurang = session.inventory.filter(it => {
+      const cur = seller.inventory.find(i => i.name === it.name)
+      return !cur || (cur.count || 0) < it.count
+    })
+    if (kurang.length > 0) {
+      sellSessions.delete(m.sender)
+      return conn.sendMessage(m.chat, {
+        text:
+          `❌ *TRANSAKSI DIBATALKAN!*\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `📦 Stok *${session.sellerName}* sudah berubah!\n` +
+          `Kurang: ${kurang.map(i => `${i.name} x${i.count}`).join(', ')}\n` +
+          `Minta penjual buat penawaran baru.`,
+        mentions: [session.sellerId, m.sender]
+      }, { quoted: m })
+    }
+
     if (buyer.money < session.totalPrice) {
       sellSessions.delete(m.sender)
       return conn.sendMessage(m.chat, {
@@ -983,7 +1233,7 @@ handler.help  = [
   'inventory',
   'buyumpan [nama] [qty]',
   'pindah [lokasi]',
-  'jualikan [bot/@user]',
+  'jualikan [bot/@user] [nomor/nama/all] [jumlah]',
   'rodinfo',
   'repairing',
   'statmancing',

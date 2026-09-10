@@ -1,25 +1,48 @@
 import axios from "axios"
 import FormData from "form-data"
 
-const uploadDeline = async (buffer, ext = "bin", mime = "application/octet-stream") => {
+// Catbox (utama, permanen) -> fallback Uguu (sementara ±3 jam)
+const uploadCatbox = async (buffer, filename) => {
   const fd = new FormData()
-  fd.append("file", buffer, { filename: `file.${ext}`, contentType: mime })
+  fd.append("reqtype", "fileupload")
+  fd.append("fileToUpload", buffer, { filename })
 
-  const res = await axios.post("https://api.deline.web.id/uploader", fd, {
+  const res = await axios.post("https://catbox.moe/user/api.php", fd, {
     headers: fd.getHeaders(),
-    maxBodyLength: 50 * 1024 * 1024,
-    maxContentLength: 50 * 1024 * 1024,
-    timeout: 60000
+    maxBodyLength: 200 * 1024 * 1024,
+    maxContentLength: 200 * 1024 * 1024,
+    timeout: 90000
   })
 
-  const data = res.data || {}
-  if (data.status === false) {
-    throw new Error(data.message || data.error || "Upload failed")
-  }
-
-  const link = data?.result?.link || data?.url || data?.path
-  if (!link) throw new Error("Invalid response (no link found)")
+  const link = typeof res.data === "string" ? res.data.trim() : ""
+  if (!/^https?:\/\//.test(link)) throw new Error("Catbox: " + String(link).slice(0, 100))
   return link
+}
+
+const uploadUguu = async (buffer, ext = "bin") => {
+  const fd = new FormData()
+  fd.append("files[]", buffer, { filename: `file.${ext}` })
+
+  const res = await axios.post("https://uguu.se/upload.php", fd, {
+    headers: fd.getHeaders(),
+    maxBodyLength: 100 * 1024 * 1024,
+    maxContentLength: 100 * 1024 * 1024,
+    timeout: 90000
+  })
+
+  const link = res.data?.files?.[0]?.url
+  if (!link) throw new Error("Uguu tidak mengembalikan URL")
+  return link
+}
+
+const uploadFile = async (buffer, ext) => {
+  const filename = `upload.${ext}`
+  try {
+    return { link: await uploadCatbox(buffer, filename), host: "catbox.moe" }
+  } catch (e) {
+    console.error("TOURL catbox gagal, coba uguu:", e.message)
+    return { link: await uploadUguu(buffer, ext), host: "uguu.se (sementara)" }
+  }
 }
 
 let handler = async (m, { conn }) => {
@@ -32,13 +55,14 @@ let handler = async (m, { conn }) => {
     let buffer = await q.download()
     if (!buffer) return m.reply("Gagal download media.")
 
-    let ext = mime.split("/")[1] || "bin"
+    let ext = (mime.split("/")[1] || "bin").split(";")[0]
+    if (ext === "jpeg") ext = "jpg"
 
-    let link = await uploadDeline(buffer, ext, mime)
+    let { link, host } = await uploadFile(buffer, ext)
 
     await conn.sendMessage(
       m.chat,
-      { text: `🔗 *LINK HASIL UPLOAD*\n\n${link}`, ...global.adReply },
+      { text: `🔗 *LINK HASIL UPLOAD*\n📦 ${mime || "file"} (${(buffer.length / 1024).toFixed(1)} KB)\n🌐 Host: ${host}\n\n${link}`, ...global.adReply },
       { quoted: m }
     )
   } catch (e) {

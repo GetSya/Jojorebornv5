@@ -1,6 +1,7 @@
 import { Canvas, loadImage } from 'skia-canvas'
 import fetch from 'node-fetch'
 import moment from 'moment-timezone'
+import sharp from 'sharp'
 import * as levelling from '../lib/levelling.js'
 import fs from 'fs'
 
@@ -24,33 +25,35 @@ return 'Selamat Malam'
 
 const defaultMenu = {
 before: `
-╭─❒ 「 🤖 *%me* 」
-│ 👋 ${ucapan()} *%name*
+╭─❒ 「 ✦ *%me* ✦ 」
+│ ⋆˚ ${ucapan()} ˚⋆
+│ ✦ *%name*
 │
-│ ⏱️ *Uptime* : %uptime
-│ 🎫 *Limit* : %limit
-│ 🏷️ *Role* : %role
-│ ⭐ *Level* : %level (%exp / %maxexp)
-│ 📈 *XP Next* : %xp4levelup
-│ 🧮 *Total XP*: %totalexp
+│ ✦ Uptime : %uptime
+│ ✦ Limit  : %limit
+│ ✦ Role   : %role
+│ ✦ Level  : %level
+│ ✦ XP     : %exp / %maxexp
+│ ✦ Next   : %xp4levelup
+│ ✦ Total  : %totalexp
 │
-│ Silahkan Gabung:
-│ https://chat.whatsapp.com/Famd1qzPzScBX4TSual41k
-│
-│ 📝 *Keterangan*
+│ ─── ⋆⋅☆⋅⋆ ───
 │ 🄿 = Premium
 │ 🄻 = Limit
 ╰──────────────
+✦ Gabung grup:
+https://chat.whatsapp.com/Famd1qzPzScBX4TSual41k
 %readmore
 `.trim(),
 
-header: '╭─❒ 「 📂 *%category* 」',
-body: '│ • %cmd',
+header: '╭─❒ 「 ✦ *%category* ✦ 」',
+body: '│ ✧ %cmd',
 footer: '╰──────────────\n',
 
 after: `
-✨ *JOJO REBORN*
-⚡ Simple • Fast • Powerful
+── ⋆⋅☆⋅⋆ ──
+*JOJO REBORN*
+Simple • Fast • Powerful
 `
 }
 
@@ -97,47 +100,47 @@ try {
  // --- BARE MENU (.menu saja): kirim LIST MESSAGE native ---
  // Row yang di-tap kembali sebagai m.text berisi id-nya (mis. ".menu ai"),
  // sehingga otomatis memicu command menu kategori di bawah.
- if (!text?.trim()) {
-  let tagList = Object.keys(categories).sort()
-  let rows = [
-   { title: '🌐 Semua Menu', description: `${usedPrefix}menu all`, id: `${usedPrefix}menu all` },
-   ...tagList.map(t => ({ title: `📂 ${formatTag(t)}`, description: `${usedPrefix}menu ${t}`, id: `${usedPrefix}menu ${t}` }))
-  ]
-  // WhatsApp membatasi maksimal 10 row per section
-  let sections = []
-  for (let i = 0; i < rows.length; i += 10) {
-   sections.push({ title: i === 0 ? '🌐 MAIN MENU' : `📂 Menu ${i / 10 + 1}`, rows: rows.slice(i, i + 10) })
+  if (!text?.trim()) {
+   let tagList = Object.keys(categories).sort()
+   let rows = [
+    { title: '✦ Semua Menu', description: `${usedPrefix}menu all`, id: `${usedPrefix}menu all` },
+    ...tagList.map(t => ({ title: `❒ ${formatTag(t)}`, description: `${usedPrefix}menu ${t}`, id: `${usedPrefix}menu ${t}` }))
+   ]
+   // WhatsApp membatasi maksimal 10 row per section
+   let sections = []
+   for (let i = 0; i < rows.length; i += 10) {
+    sections.push({ title: i === 0 ? '✦ MAIN MENU' : `❒ Menu ${i / 10 + 1}`, rows: rows.slice(i, i + 10) })
+   }
+
+   let _botName = global.botName || global.namebot || botname
+   let _pushname = m.pushName || rawName
+   let _tgl = moment.tz('Asia/Jakarta').format('dddd, DD MMMM YYYY')
+   let _jam = moment.tz('Asia/Jakarta').format('HH:mm:ss') + ' WIB'
+
+   let listBody =
+    `⋆⋅☆⋅⋆ *${_botName}* ⋆⋅☆⋅⋆\n` +
+    `│\n` +
+    `│ ✦ Hallo *${_pushname}* ✦\n` +
+    `│ ${ucapan()}\n` +
+    `│\n` +
+    `│ Aku adalah *${_botName}*\n` +
+    `│ Silahkan pilih list menu\n` +
+    `│ untuk melihat daftar menu.\n` +
+    `│\n` +
+    `│ ─── ⋆⋅☆⋅⋆ ───\n` +
+    `│ ✧ Harap login terlebih dahulu\n` +
+    `│ ✧ sebelum memulai bot JOJO\n` +
+    `│ ✧ untuk mendapatkan limit & balance!\n` +
+    `│\n` +
+    `╰──────────────\n` +
+    `「 ${_tgl} 」\n` +
+    `「 ${_jam} 」`
+
+   await conn.sendButtons(m.chat, listBody, [
+    { type: 'list', title: '✦ Pilih Menu', sections }
+   ], { footer: 'JOJO REBORN • Simple • Fast • Powerful', quoted: m })
+   return
   }
-
-  let _botName = global.botName || global.namebot || botname
-  let _pushname = m.pushName || rawName
-  let _tgl = moment.tz('Asia/Jakarta').format('dddd, DD MMMM YYYY')
-  let _jam = moment.tz('Asia/Jakarta').format('HH:mm:ss') + ' WIB'
-
-  let listBody =
-   `╔═⧎ *${_botName}* ⧎═\n` +
-   `║\n` +
-   `╠═⧎ Hallo *${_pushname}*\n` +
-   `║\n` +
-   `╠═⧎ Aku Adalah *${_botName}* \n` +
-   `║ Silahkan Pilih List Menu\n` +
-   `║ Untuk Melihat Daftar Menu.\n` +
-   `║\n` +
-   `╠═⧎ *Harap Login Terlebih*\n` +
-   `║ *Dahulu Sebelum Memulai Bot* \n` +
-   `║ *JOJO Untuk Mendapatkan* \n` +
-   `║ *Limit Dan Balance!*\n` +
-   `║\n` +
-   `╚═⧎ Thanks For Using ${_botName}\n` +
-   `❋─────────────────❋\n\n` +
-   `「 *${_tgl}* 」\n` +
-   `「 *${_jam}* 」`
-
-  await conn.sendButtons(m.chat, listBody, [
-   { type: 'list', title: '📂 Pilih Menu', sections }
-  ], { footer: '✨ JOJO REBORN • Simple • Fast • Powerful', quoted: m })
-  return
- }
 
  // --- PROSES GAMBAR CANVAS ---
  const canvas = new Canvas(800, 450)
@@ -287,13 +290,54 @@ menuText = [
  ]
  }
 
- let finalText = menuText.join('\n').replace(/%(\w+)/g, (_, k) => replace[k] || _)
+  let finalText = menuText.join('\n').replace(/%(\w+)/g, (_, k) => replace[k] || _)
 
- await conn.sendMessage(m.chat, {
- image: thumbBuffer,
- caption: finalText,
- mentions: [m.sender]
- }, { quoted: m })
+  // --- KARTU THUMBNAIL BESAR (externalAdReply): gambar masuk
+  //     thumbnail preview, pesan yang terkirim cuma TEKS ->
+  //     tidak numpuk di storage (seperti contoh screenshot) ---
+  let totalCmds = Object.values(categories).reduce(
+  (n, items) => n + items.reduce((a, it) => a + (it.helps?.length || 0), 0), 0
+  )
+
+  // --- FAKE QUOTED (orderMessage): gambar masuk thumbnail quote,
+  //     pesan yang terkirim cuma TEKS -> tidak numpuk di storage ---
+  let thumbSmall = null
+  try {
+  thumbSmall = await sharp(thumbBuffer).resize({ width: 300 }).jpeg({ quality: 70 }).toBuffer()
+  } catch {
+  thumbSmall = thumbBuffer
+  }
+
+  let botJid = conn.user?.jid || conn.user?.id || m.sender
+  let _menuName = global.botName || global.namebot || botname
+
+  const ftroliQuoted = {
+  key: {
+   fromMe: false,
+   participant: '0@s.whatsapp.net',
+   remoteJid: 'status@broadcast',
+  },
+  message: {
+   orderMessage: {
+   orderId: String(Date.now()),
+   thumbnail: thumbSmall,
+   itemCount: totalCmds,
+   status: 'INQUIRY',
+   surface: 'CATALOG',
+   message: `★ ${_menuName}`,
+   orderTitle: `❒ ${totalCmds} Commands`,
+   sellerJid: botJid,
+   token: 'jojo-menu-v1',
+   totalAmount1000: totalCmds * 1000,
+   totalCurrencyCode: 'IDR',
+   },
+  },
+  }
+
+  await conn.sendMessage(m.chat, {
+  text: finalText,
+  mentions: [m.sender]
+  }, { quoted: ftroliQuoted })
 
  let last = cooldown.get(m.sender) || 0
  if (Date.now() - last < 60_000) {
