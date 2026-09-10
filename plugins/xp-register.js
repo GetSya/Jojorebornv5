@@ -1,64 +1,36 @@
-import { createHash } from 'crypto'
+// DAFTAR dialihkan ke web — sumber akun resmi: https://bot.acamedia.xyz/register
+// Akun web tersimpan di JVault, lalu login di bot cukup ketik .login (cek nomor WA otomatis).
 
-let Reg = /\|?(.*)([.|] *?)([0-9]*)$/i
+let handler = async function (m, { conn, usedPrefix }) {
+	const loginUrl = global.jvault?.loginUrl || 'https://bot.acamedia.xyz';
+	const registerUrl = global.jvault?.registerUrl || 'https://bot.acamedia.xyz/register';
 
-let handler = async function (m, { conn, text, usedPrefix }) {
+	let text =
+		`📝 *Pendaftaran pindah ke website.*\n\n` +
+		`1. Daftar dulu lewat tombol *Daftar Akun*\n` +
+		`   Isi: Nomor WhatsApp + Username + Password\n` +
+		`2. Kalau sudah punya akun, buka *Login Web*\n` +
+		`3. Terakhir, tekan *Cek Login* di bawah.\n\n` +
+		`Nomor WA kamu dicek otomatis di database web.`;
 
-  let user = global.db.data.users[m.sender]
+	let buttons = [
+		{ type: 'url', title: '📝 Daftar Akun', url: registerUrl },
+		{ type: 'url', title: '🌐 Login Web', url: loginUrl },
+		{ id: `${usedPrefix}login`, title: '🔄 Cek Login' },
+	];
 
-  let pp
-  try {
-    pp = await conn.profilePictureUrl(m.sender, 'image')
-  } catch {
-    pp = 'https://i.ibb.co/2WzLyGk/profile.jpg'
-  }
+	try {
+		return await conn.sendButtons(m.chat, text, buttons, {
+			footer: global.namebot || 'JOJO BOT',
+			quoted: m,
+		});
+	} catch {
+		return m.reply(`${text}\n\n📝 ${registerUrl}\n🌐 ${loginUrl}\n\nLalu ketik *${usedPrefix}login*`);
+	}
+};
 
-  if (user.registered === true)
-    throw `🕰️ Kamu sudah terdaftar.\nGunakan *${usedPrefix}unreg* untuk daftar ulang.`
+handler.help = ['daftar', 'register', 'verify'];
+handler.tags = ['xp'];
+handler.command = /^(daftar|verify|reg(ister)?)$/i;
 
-  if (!Reg.test(text))
-    return m.reply(`🖤 Masukkan *Nama.Umur*\nContoh:\n${usedPrefix}daftar Kurumi.17`)
-
-  let [_, name, _splitter, age] = text.match(Reg)
-
-  if (!name) throw 'Nama tidak boleh kosong.'
-  if (!age) throw 'Umur tidak boleh kosong.'
-
-  age = parseInt(age)
-  if (age > 60) throw 'Umur terlalu tinggi.'
-  if (age < 10) throw 'Umur belum mencukupi.'
-
-  user.name = name.trim()
-  user.age = age
-  user.regTime = Date.now()
-  user.registered = true
-
-  let sn = createHash('md5').update(m.sender).digest('hex')
-  let totalUser = Object.values(global.db.data.users).filter(v => v.registered).length
-
-  let textResult = `
-🕰️ *Registrasi Berhasil*
-
-👤 Nama : *${name}*
-🎂 Umur : *${age} Tahun*
-📌 Status : *Aktif*
-🔐 Serial : ${sn}
-
-✨ Kamu adalah user ke *${totalUser}*
-`.trim()
-
-  let imagePayload = Buffer.isBuffer(pp)
-    ? { image: pp }
-    : { image: { url: pp } }
-
-  await conn.sendMessage(m.chat, {
-    ...imagePayload,
-    caption: textResult
-  }, { quoted: m })
-}
-
-handler.help = ['daftar <nama>.<umur>']
-handler.tags = ['xp']
-handler.command = /^(daftar|verify|reg(ister)?)$/i
-
-export default handler
+export default handler;

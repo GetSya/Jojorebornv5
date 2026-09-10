@@ -29,7 +29,7 @@
     },
     "6285183221210@s.whatsapp.net": {
       "name": "arasya",
-      "exp": 10267,
+      "exp": 10349,
       "money": 51960,
       "hutang": 0,
       "hutangTime": 0,
@@ -47,6 +47,12 @@
       "registered": true,
       "banned": false,
       "autolevelup": false,
+      "loggedIn": false,
+      "loginTime": 0,
+      "jvaultId": "",
+      "jvaultUsername": "",
+      "jvaultWhatsapp": "",
+      "jvaultEmail": "",
       "rod": 100,
       "bait": "None",
       "bait_count": 0,
@@ -173834,8 +173840,8 @@
     },
     "6288214772441@s.whatsapp.net": {
       "name": "arasya",
-      "exp": 9601,
-      "money": 997305060,
+      "exp": 10052,
+      "money": 997305332,
       "hutang": 0,
       "hutangTime": 0,
       "lastpinjam": 0,
@@ -173852,13 +173858,18 @@
       "registered": true,
       "banned": false,
       "autolevelup": false,
-      "rod": 100,
+      "loggedIn": true,
+      "loginTime": 1788999197139,
+      "jvaultId": "mturw0sdlnhd1z",
+      "jvaultUsername": "asyaku130",
+      "jvaultWhatsapp": "6288214772441",
+      "jvaultEmail": "asyaku130@gmail.com",
+      "rod": 97,
       "bait": "None",
       "bait_count": 0,
       "location": "Empang",
-      "total_tangkapan": 0,
-      "loggedIn": true,
-      "loginTime": 1788840132567
+      "total_tangkapan": 1,
+      "inventory": []
     },
     "6281299559662@s.whatsapp.net": {
       "name": "zaa",
@@ -201627,10 +201638,10 @@
   },
   "stats": {
     "main-menu.js": {
-      "total": 3388,
-      "success": 3388,
-      "last": 1788840171933,
-      "lastSuccess": 1788840171933
+      "total": 3391,
+      "success": 3391,
+      "last": 1788995402261,
+      "lastSuccess": 1788995402261
     },
     "xp-profile.js": {
       "total": 155,
@@ -201837,10 +201848,10 @@
       "lastSuccess": 1772158504135
     },
     "game-mancing.js": {
-      "total": 10083,
-      "success": 9712,
-      "last": 1780435544528,
-      "lastSuccess": 1780435544528
+      "total": 10090,
+      "success": 9719,
+      "last": 1788995458931,
+      "lastSuccess": 1788995458931
     },
     "game-mancing-fish_stats.js": {
       "total": 39,
@@ -202965,10 +202976,10 @@
       "lastSuccess": 1788839518935
     },
     "xp-login.js": {
-      "total": 2,
-      "success": 2,
-      "last": 1788840133322,
-      "lastSuccess": 1788840133322
+      "total": 10,
+      "success": 10,
+      "last": 1788999263869,
+      "lastSuccess": 1788999263869
     }
   },
   "msgs": {},

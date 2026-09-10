@@ -19,6 +19,18 @@ global.pakasir = {
 	expired: 2, //1 = 1menit. 30 = 30menit
 };
 
+/*============== JVAULT LOGIN (bot.acamedia.xyz) ==============*/
+// Sumber kebenaran user ada di JVault bin ini.
+// Login bot = cek nomor WA pengirim ada di users[].whatsapp.
+// Kalau tidak ada → suruh login/register dulu ke loginUrl.
+global.jvault = {
+	api: 'https://jvault.aerialstudio.tech/api',
+	bin_id: '255feaaa-e64c-4b4e-b2de-5f2ec0ee54b3',
+	cacheMs: 60 * 1000, // cache hasil fetch 60 detik biar tidak spam API
+	loginUrl: 'https://bot.acamedia.xyz',
+	registerUrl: 'https://bot.acamedia.xyz/register',
+};
+
 global.stickpack = 'My Sticker';
 global.stickauth = 'Sticker Akuh';
 

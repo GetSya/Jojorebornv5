@@ -772,12 +772,29 @@ global.dfail = (type, m, conn) => {
   
 	  botAdmin: (m, conn) => conn.reply(m.chat, `Jadikan aku admin dulu`, m),
   
-	  unreg: (m, conn) =>
-		conn.reply(
-		  m.chat,
-		  `Kamu belum terdaftar.\nDaftar dulu ya kalau mau pakai fiturku~\n.daftar Nama.Umur`,
-		  m
-		),
+	  unreg: (m, conn) => {
+		let loginUrl = (global.jvault?.loginUrl) || 'https://bot.acamedia.xyz';
+		let registerUrl = (global.jvault?.registerUrl) || 'https://bot.acamedia.xyz/register';
+		let text =
+			`🔐 Kamu belum login.\n` +
+			`Login otomatis pakai nomor WhatsApp kamu — tekan tombol *Login Web* dulu, lalu *Cek Login*.`;
+		let buttons = [
+			{ type: 'url', title: '🌐 Login Web', url: loginUrl },
+			{ type: 'url', title: '📝 Daftar Akun', url: registerUrl },
+			{ id: '.login', title: '🔄 Cek Login' },
+		];
+		try {
+			let p = conn.sendButtons(m.chat, text, buttons, {
+				footer: global.namebot || 'JOJO BOT',
+				quoted: m,
+			});
+			// dfail dipanggil tanpa await — fallback ke teks biasa kalau buttons gagal
+			if (p && typeof p.catch === 'function')
+				p.catch(() => conn.reply(m.chat, `${text}\n\n🌐 ${loginUrl}\n📝 ${registerUrl}`, m));
+		} catch {
+			conn.reply(m.chat, `${text}\n\n🌐 ${loginUrl}\n📝 ${registerUrl}`, m);
+		}
+	  },
 	}[type]
   
 	if (!msg) return
